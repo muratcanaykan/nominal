@@ -7,6 +7,11 @@ import { useNow } from '../lib/useRoom';
 import { CabinScreen } from './CabinScreen';
 import { SimPanel } from './SimPanel';
 
+/** Camera distance multiplier limits: 1 is the default framing, smaller is closer. */
+const ZOOM_MIN = 0.35;
+const ZOOM_MAX = 2.4;
+const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
+
 // three.js is large: load the 3D view only when the page needs it.
 const Sim3D = lazy(() => import('../three/Sim3D'));
 
@@ -47,6 +52,10 @@ function FullscreenIcon({ exit }: { exit: boolean }) {
 
 export function SimSection({ viewer }: { viewer: AstronautId }) {
   const box = useRef<HTMLDivElement>(null);
+  const view = useRef<HTMLDivElement>(null);
+  const zoom = useRef(1);
+  // The wheel zooms once the view is in use (clicked or full screen), so scrolling the page never gets stuck on it.
+  const [active, setActive] = useState(false);
   const [target, setTarget] = useState<AstronautId | null>(null);
   const [focusScreen, setFocusScreen] = useState(false);
   const [screenOpen, setScreenOpen] = useState(false);
@@ -81,6 +90,24 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
 
   useEffect(() => () => window.clearTimeout(openTimer.current), []);
 
+  useEffect(() => {
+    const el = view.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      // Trackpad pinch arrives as a wheel event with ctrlKey; it always zooms.
+      if (!active && !full && !e.ctrlKey && !e.metaKey) return;
+      if ((e.target as HTMLElement).closest('.sim3d__overlay')) return;
+      e.preventDefault();
+      zoom.current = clampZoom(zoom.current * Math.exp(e.deltaY * 0.0015));
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, [active, full]);
+
+  const zoomBy = (factor: number) => {
+    zoom.current = clampZoom(zoom.current * factor);
+  };
+
   const toggleFull = async () => {
     if (full) {
       if (document.fullscreenElement) await document.exitFullscreen().catch(() => undefined);
@@ -108,7 +135,12 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
 
   return (
     <div ref={box} className={`sim3d${full ? ' is-full' : ''}${coverFull ? ' is-cover' : ''}${full && !panelOpen ? ' is-panel-hidden' : ''}`}>
-      <div className="sim3d__view">
+      <div
+        ref={view}
+        className={`sim3d__view${active || full ? ' is-active' : ''}`}
+        onPointerDown={() => setActive(true)}
+        onPointerLeave={() => setActive(false)}
+      >
         <SimBoundary>
           <Suspense fallback={<div className="sim3d__loading">Loading the 3D simulation…</div>}>
             <Sim3D
@@ -119,16 +151,28 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
               }}
               focusScreen={focusScreen}
               onScreenClick={onScreenClick}
+              zoom={zoom}
             />
           </Suspense>
         </SimBoundary>
-        <p className="sim3d__hint">Drag to rotate · Click the cabin screen or an astronaut · Astronaut model: NASA 3D Resources · Simulated data</p>
+        <p className="sim3d__hint">
+          Drag to rotate · {active || full ? 'Scroll to zoom' : 'Click, then scroll to zoom'} · Click the cabin screen or an astronaut ·
+          Astronaut model: NASA 3D Resources · Simulated data
+        </p>
         <div className="sim3d__buttons">
           {full && (
             <button className="sim3d__btn" onClick={() => setPanelOpen((o) => !o)} aria-pressed={panelOpen}>
               {panelOpen ? 'Hide controls' : 'Controls'}
             </button>
           )}
+          <div className="sim3d__zoom" role="group" aria-label="Zoom">
+            <button className="sim3d__btn sim3d__btn--icon" onClick={() => zoomBy(1 / 1.3)} aria-label="Zoom in">
+              +
+            </button>
+            <button className="sim3d__btn sim3d__btn--icon" onClick={() => zoomBy(1.3)} aria-label="Zoom out">
+              −
+            </button>
+          </div>
           <button className="sim3d__btn" onClick={toggleFull} aria-label={full ? 'Exit full screen' : 'Full screen'}>
             <FullscreenIcon exit={full} />
             <span>{full ? 'Exit full screen' : 'Full screen'}</span>

@@ -757,26 +757,27 @@ const HOME_OFFSET = new THREE.Vector3(2.6, 3, 10.8);
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
 
 /**
- * Orbit camera. In the overview it sways gently around a three-quarter view; selecting an astronaut flies to them.
- * Dragging takes over for a while.
+ * Orbit camera. The target follows the selection (an astronaut, the cabin screen or the whole vehicle) and the
+ * distance follows the zoom. In the overview the view sways gently; dragging takes over for a while.
  */
 function CameraRig({
   selected,
   positions,
   reduce,
   focusScreen,
+  zoom,
 }: {
   selected: AstronautId | null;
   positions: Map<AstronautId, THREE.Vector3>;
   reduce: boolean;
   focusScreen: boolean;
+  zoom: { current: number };
 }) {
   const controls = useRef<{ target: THREE.Vector3; update: () => void } | null>(null);
-  const fly = useRef(0);
   const idleAt = useRef(0);
   const last = useRef<string | undefined>(undefined);
   const clock = useRef(0);
-  useFrame((state, delta) => {
+  useFrame((state) => {
     const c = controls.current;
     if (!c) return;
     const t = state.clock.elapsedTime;
@@ -784,30 +785,27 @@ function CameraRig({
     const key = `${selected}-${focusScreen}`;
     if (last.current !== key) {
       last.current = key;
-      fly.current = 2;
       idleAt.current = 0;
     }
-    if (focusScreen) {
-      c.target.lerp(SCREEN_POS, 0.08);
-      state.camera.position.lerp(SCREEN_POS.clone().add(new THREE.Vector3(0, 0.05, 2.4)), 0.08);
-      c.update();
-      return;
-    }
-    const p = selected ? positions.get(selected) : undefined;
-    const goal = p ? p.clone() : HOME_TARGET;
-    c.target.lerp(goal, 0.06);
-    const idle = t > idleAt.current;
-    if (!p && idle) {
+    const cam = state.camera as THREE.PerspectiveCamera;
+    const p = !focusScreen && selected ? positions.get(selected) : undefined;
+    const goal = focusScreen ? SCREEN_POS : p ? p : HOME_TARGET;
+    c.target.lerp(goal, focusScreen ? 0.08 : 0.06);
+
+    // Direction: the user's own angle, or the swaying overview angle when idle, or straight at the screen.
+    const offset = cam.position.clone().sub(c.target);
+    let dir = offset.clone().normalize();
+    if (focusScreen) dir.lerp(new THREE.Vector3(0, 0.02, 1), 0.08).normalize();
+    else if (!p && t > idleAt.current) {
       const sway = reduce ? 0 : Math.sin(t * 0.12) * 0.45;
-      // Narrow (phone) views step back so the whole vehicle fits.
-      const back = Math.min(2.2, Math.max(1, 1.5 / (state.camera as THREE.PerspectiveCamera).aspect));
-      const want = HOME_OFFSET.clone().multiplyScalar(back).applyAxisAngle(Y_AXIS, sway).add(HOME_TARGET);
-      state.camera.position.lerp(want, fly.current > 0 ? 0.06 : 0.02);
-    } else if (p && fly.current > 0) {
-      const dir = state.camera.position.clone().sub(c.target).normalize();
-      state.camera.position.lerp(goal.clone().add(dir.multiplyScalar(5)), 0.06);
+      dir = dir.lerp(HOME_OFFSET.clone().applyAxisAngle(Y_AXIS, sway).normalize(), 0.03).normalize();
     }
-    fly.current = Math.max(0, fly.current - delta);
+    // Narrow (phone) views step back so the whole vehicle fits.
+    const back = Math.min(2.2, Math.max(1, 1.5 / cam.aspect));
+    const base = focusScreen ? 2.4 : p ? 5 : HOME_OFFSET.length() * back;
+    const wanted = base * (focusScreen ? Math.min(1, zoom.current) : zoom.current);
+    const dist = THREE.MathUtils.lerp(offset.length(), wanted, 0.08);
+    cam.position.copy(c.target).add(dir.multiplyScalar(dist));
     c.update();
   });
   return (
@@ -820,7 +818,6 @@ function CameraRig({
       maxPolarAngle={Math.PI * 0.85}
       onStart={() => {
         idleAt.current = Number.POSITIVE_INFINITY;
-        fly.current = 0;
       }}
       onEnd={() => {
         idleAt.current = clock.current + 12;
@@ -830,13 +827,15 @@ function CameraRig({
 }
 
 interface SceneProps {
+  /** Camera distance multiplier, changed by the wheel and the + / - buttons outside the canvas. */
+  zoom: { current: number };
   selected: AstronautId | null;
   onSelect: (id: AstronautId) => void;
   focusScreen: boolean;
   onScreenClick: () => void;
 }
 
-function Scene({ selected, onSelect, focusScreen, onScreenClick, reduce }: SceneProps & { reduce: boolean }) {
+function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce }: SceneProps & { reduce: boolean }) {
   const { crew, profile, solar, screen } = useCrewVisuals();
   const positions = useMemo(() => new Map<AstronautId, THREE.Vector3>(), []);
   const moduleLevels: Partial<Record<LocationId, Level>> = {};
@@ -868,7 +867,7 @@ function Scene({ selected, onSelect, focusScreen, onScreenClick, reduce }: Scene
       {solar && <SolarStream />}
       <CabinScreen3D info={screen} focused={focusScreen} onOpen={onScreenClick} />
       <DataFlow crew={crew} positions={positions} profile={profile} />
-      <CameraRig selected={selected} positions={positions} reduce={reduce} focusScreen={focusScreen} />
+      <CameraRig selected={selected} positions={positions} reduce={reduce} focusScreen={focusScreen} zoom={zoom} />
       <EffectComposer>
         <Bloom intensity={0.9} luminanceThreshold={0.55} luminanceSmoothing={0.2} mipmapBlur />
         <Vignette offset={0.25} darkness={0.7} />

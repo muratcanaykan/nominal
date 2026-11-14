@@ -1942,3 +1942,39 @@
   color: #fecdd3;
   border-color: var(--l3);
 }
+
+.sim3d__zoom {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  background: rgb(12 16 22 / 0.72);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  backdrop-filter: blur(8px);
+}
+
+.sim3d__zoom .sim3d__btn {
+  border: 0;
+  background: transparent;
+  backdrop-filter: none;
+}
+
+.sim3d__btn--icon {
+  justify-content: center;
+  width: 36px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+}
+
+.sim3d__btn--icon:hover {
+  background: var(--panel-2) !important;
+}
+
+.sim3d__view.is-active {
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
+}
+
+.sim3d__hint {
+  right: 300px;
+}
