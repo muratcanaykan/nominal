@@ -1792,11 +1792,11 @@
 }
 
 .sim3d__overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 80;
   display: grid;
-  place-items: center;
+  justify-items: center;
   padding: 18px;
   background: rgb(5 7 11 / 0.55);
   backdrop-filter: blur(4px);
@@ -1806,7 +1806,9 @@
 
 .sim3d__overlay-inner {
   position: relative;
-  width: min(100%, 900px);
+  width: min(100%, 1000px);
+  /* Centred when it fits, starts at the top (and the overlay scrolls) when it does not. */
+  margin: auto 0;
 }
 
 .sim3d__overlay-inner .cabin {
@@ -2091,4 +2093,35 @@
 .profile__sees li::before {
   content: '✓ ';
   color: var(--l0);
+}
+
+/* ---------- Scrollbars in the theme colours ---------- */
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(125 211 252 / 0.35) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgb(125 211 252 / 0.3);
+  border: 3px solid transparent;
+  border-radius: 99px;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: rgb(125 211 252 / 0.55);
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }

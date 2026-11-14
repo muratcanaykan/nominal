@@ -125,7 +125,18 @@ function AdvisoryCard({ advisory, now }: { advisory: Advisory; now: number }) {
 }
 
 /** `locations`: `3d` shows the live 3D view of the vehicle (default); `map` shows the flat crew map. */
-export function CabinScreen({ now, viewer = '04', locations = '3d' }: { now: number; viewer?: AstronautId; locations?: '3d' | 'map' }) {
+export function CabinScreen({
+  now,
+  viewer = '04',
+  locations = '3d',
+  foreground = false,
+}: {
+  now: number;
+  viewer?: AstronautId;
+  locations?: '3d' | 'map';
+  /** Opened in front of the full-screen simulation: keep its 3D view running. */
+  foreground?: boolean;
+}) {
   const { state } = useRoom();
   const summary = crewSummary(state ?? undefined, now);
   const profile = PROFILES[state?.profile ?? 'lunar'];
@@ -176,7 +187,7 @@ export function CabinScreen({ now, viewer = '04', locations = '3d' }: { now: num
         </AnimatePresence>
       </div>
 
-      {locations === '3d' ? <CabinView3D fallback={map} /> : map}
+      {locations === '3d' ? <CabinView3D fallback={map} foreground={foreground} /> : map}
 
       <ul className="cabin__crew">
         {crew.map((a) => {

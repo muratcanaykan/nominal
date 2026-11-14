@@ -3,6 +3,7 @@
 
 import { Component, lazy, Suspense, useRef, useState, type ReactNode } from 'react';
 import type { AstronautId } from '../domain/crew';
+import { useSimFull } from '../lib/simFull';
 import { useInView } from '../lib/useInView';
 
 const Sim3D = lazy(() => import('../three/Sim3D'));
@@ -17,9 +18,11 @@ class Fallback extends Component<{ fallback: ReactNode; children: ReactNode }, {
   }
 }
 
-export function CabinView3D({ fallback }: { fallback: ReactNode }) {
+export function CabinView3D({ fallback, foreground = false }: { fallback: ReactNode; foreground?: boolean }) {
   const box = useRef<HTMLDivElement>(null);
   const visible = useInView(box);
+  // While the simulation is in full screen this page view is hidden behind it, so it pauses.
+  const simFull = useSimFull();
   const zoom = useRef(1);
   const [selected, setSelected] = useState<AstronautId | null>(null);
   return (
@@ -28,7 +31,7 @@ export function CabinView3D({ fallback }: { fallback: ReactNode }) {
         <Suspense fallback={fallback}>
           <Sim3D
             mode="cabin"
-            active={visible}
+            active={visible && (foreground || !simFull)}
             zoom={zoom}
             selected={selected}
             onSelect={(id) => setSelected((cur) => (cur === id ? null : id))}

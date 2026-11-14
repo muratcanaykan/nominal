@@ -901,6 +901,8 @@ interface SceneProps {
   mode?: SceneMode;
   /** False pauses rendering, for example while the view is scrolled out of sight. */
   active?: boolean;
+  /** `light` renders fewer pixels and skips multisampling, for full screen on large displays. */
+  quality?: 'normal' | 'light';
   /** Camera distance multiplier, changed by the wheel and the + / - buttons outside the canvas. */
   zoom: { current: number };
   selected: AstronautId | null;
@@ -909,7 +911,7 @@ interface SceneProps {
   onScreenClick?: () => void;
 }
 
-function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce, mode = 'sim' }: SceneProps & { reduce: boolean }) {
+function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce, mode = 'sim', quality = 'normal' }: SceneProps & { reduce: boolean }) {
   const { crew, profile, solar, screen } = useCrewVisuals(mode);
   const positions = useMemo(() => new Map<AstronautId, THREE.Vector3>(), []);
   const moduleLevels: Partial<Record<LocationId, Level>> = {};
@@ -944,7 +946,7 @@ function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce, m
       <CameraRig selected={selected} positions={positions} reduce={reduce} focusScreen={focusScreen} zoom={zoom} />
       {/* The cabin view skips post-processing to stay light next to the main simulation. */}
       {mode === 'sim' && (
-        <EffectComposer>
+        <EffectComposer multisampling={quality === 'light' ? 0 : 4}>
           <Bloom intensity={0.9} luminanceThreshold={0.55} luminanceSmoothing={0.2} mipmapBlur />
           <Vignette offset={0.25} darkness={0.7} />
         </EffectComposer>
@@ -958,7 +960,8 @@ export default function Sim3D(props: SceneProps) {
   return (
     <Canvas
       className="sim3d__canvas"
-      dpr={props.mode === 'cabin' ? [1, 1.25] : [1, 1.75]}
+      // Pixel ratio caps keep large screens smooth: full screen renders at most 1.25×, the page view 1.5×.
+      dpr={props.mode === 'cabin' || props.quality === 'light' ? [1, 1.25] : [1, 1.5]}
       frameloop={props.active === false ? 'never' : 'always'}
       camera={{ position: [3, 3.2, 11], fov: 40, near: 0.1, far: 400 }}
       gl={{ antialias: true }}
