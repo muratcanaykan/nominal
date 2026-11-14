@@ -1,0 +1,76 @@
+{
+ "source": "NASA Open Science Data Repository (OSDR) — Inspiration4 Comprehensive Metabolic Panel",
+ "accession": "OSD-575",
+ "file": "LSDS-8_Comprehensive_Metabolic_Panel_CMP.upload_SUBMITTED.csv",
+ "url": "https://osdr.nasa.gov/bio/repo/data/studies/OSD-575",
+ "analyte": "GLUCOSE",
+ "units": "mg/dL",
+ "labRange": [
+  65,
+  99
+ ],
+ "timepoints": "L-n = days before launch, R+n = days after return",
+ "preflightTimepoints": [
+  "L-92",
+  "L-44",
+  "L-3"
+ ],
+ "subjects": {
+  "C001": {
+   "sex": "M",
+   "glucose": {
+    "L-92": 83,
+    "L-44": 80,
+    "L-3": 69,
+    "R+1": 90,
+    "R+45": 84,
+    "R+82": 91,
+    "R+194": 87
+   },
+   "preflightMean": 77.3,
+   "dayAfterLanding": 90
+  },
+  "C002": {
+   "sex": "F",
+   "glucose": {
+    "L-92": 69,
+    "L-44": 72,
+    "L-3": 78,
+    "R+1": 83,
+    "R+45": 44,
+    "R+82": 77,
+    "R+194": 84
+   },
+   "preflightMean": 73,
+   "dayAfterLanding": 83
+  },
+  "C004": {
+   "sex": "M",
+   "glucose": {
+    "L-92": 100,
+    "L-44": 83,
+    "L-3": 56,
+    "R+1": 97,
+    "R+45": 43,
+    "R+82": 80,
+    "R+194": 84
+   },
+   "preflightMean": 79.7,
+   "dayAfterLanding": 97
+  },
+  "C003": {
+   "sex": "F",
+   "glucose": {
+    "L-92": 77,
+    "L-44": 62,
+    "L-3": 75,
+    "R+45": 36,
+    "R+82": 80,
+    "R+194": 73,
+    "R+1": 103
+   },
+   "preflightMean": 71.3,
+   "dayAfterLanding": 103
+  }
+ }
+}

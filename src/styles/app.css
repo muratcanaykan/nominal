@@ -719,6 +719,13 @@
   vector-effect: non-scaling-stroke;
 }
 
+.cmo-ref {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
 .cmo-timeline {
   list-style: none;
   margin: 0;

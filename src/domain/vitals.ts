@@ -159,7 +159,7 @@ export const VITALS: Record<VitalId, VitalDef> = {
     hazards: ['gravity', 'hostile'],
     info: {
       what: 'Blood glucose from a continuous glucose monitor (CGM) patch, updated every few minutes.',
-      why: 'Spaceflight can reduce insulin sensitivity, and meals are easy to delay on busy mission days.',
+      why: 'Spaceflight can reduce insulin sensitivity, and meals are easy to delay on busy mission days. In NASA data from the Inspiration4 crew, all four crew members had higher fasting glucose the day after landing than before flight.',
       actions: {
         0: 'No action needed.',
         1: 'Confirm with a fingerstick test. If low, take fast-acting carbohydrate. If high, drink water and log your last meal.',
@@ -170,6 +170,7 @@ export const VITALS: Record<VitalId, VitalDef> = {
     references: [
       'American Diabetes Association — hypoglycaemia level 1 below 70 mg/dL, level 2 below 54 mg/dL.',
       'Battelino T. et al., "Clinical Targets for Continuous Glucose Monitoring Data Interpretation", Diabetes Care 42(8), 2019.',
+      'NASA OSDR OSD-575 — Inspiration4 Comprehensive Metabolic Panel (pre- and post-flight glucose of four crew members).',
     ],
   },
   sleep: {

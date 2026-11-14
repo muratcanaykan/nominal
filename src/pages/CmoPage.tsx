@@ -2,7 +2,7 @@
 // The demo PIN is shown on screen on purpose: judges cannot log in to anything.
 
 import { useState, type FormEvent } from 'react';
-import { CREW, CREW_BY_ID, PROFILES, type AstronautId } from '../domain/crew';
+import { CREW, CREW_BY_ID, OSDR_GLUCOSE, PROFILES, type AstronautId } from '../domain/crew';
 import { SCENARIOS } from '../domain/scenarios';
 import { crewSummary, snapshot, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS, type VitalId } from '../domain/vitals';
@@ -111,6 +111,11 @@ function CrewCard({ s, state, now }: { s: Snapshot; state: RoomState | undefined
           );
         })}
       </div>
+      <p className="cmo-ref">
+        Glucose baseline from real data: anonymised Inspiration4 crew member {a.osdrSubject}, pre-flight fasting mean{' '}
+        {Math.round(OSDR_GLUCOSE.subjects[a.osdrSubject].preflightMean)} mg/dL, {OSDR_GLUCOSE.subjects[a.osdrSubject].dayAfterLanding} mg/dL
+        the day after landing (NASA OSDR {OSDR_GLUCOSE.accession}).
+      </p>
       {items.length > 0 && (
         <ol className="cmo-timeline">
           {items.map((it, i) => (

@@ -43,6 +43,10 @@ that helps astronauts assess their own health and guides them on what to do.
   — a solar energetic particle event in the last 72 hours raises a radiation advisory on every screen, and recent
   space weather events are listed in the medical officer view. Data is saved at build time
   ([`scripts/fetch-donki.mjs`](scripts/fetch-donki.mjs)) and refreshed live in the browser.
+- NASA Open Science Data Repository — [OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575), Inspiration4
+  Comprehensive Metabolic Panel. Each simulated astronaut's glucose baseline comes from the real pre-flight glucose of
+  one anonymised Inspiration4 crew member; the medical officer view shows that baseline and the post-landing value
+  ([`scripts/fetch-osdr.mjs`](scripts/fetch-osdr.mjs) → [`src/data/osdr-inspiration4.json`](src/data/osdr-inspiration4.json)).
 
 ## Space agency partner resources
 

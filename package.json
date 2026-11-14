@@ -9,7 +9,8 @@
     "build": "tsc --noEmit -p tsconfig.json && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "data:osdr": "node scripts/fetch-osdr.mjs"
   },
   "dependencies": {
     "firebase": "^13.3.0",
