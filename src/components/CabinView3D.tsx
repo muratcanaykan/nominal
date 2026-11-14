@@ -5,6 +5,7 @@ import { Component, lazy, Suspense, useRef, useState, type ReactNode } from 'rea
 import type { AstronautId } from '../domain/crew';
 import { useSimFull } from '../lib/simFull';
 import { useInView } from '../lib/useInView';
+import { HealthCard } from './HealthCard';
 import { usePinchZoom } from '../lib/usePinchZoom';
 
 const Sim3D = lazy(() => import('../three/Sim3D'));
@@ -41,12 +42,8 @@ export function CabinView3D({ fallback, foreground = false }: { fallback: ReactN
           />
         </Suspense>
       </Fallback>
-      <span className="cabin__3d-label">Crew locations · live 3D</span>
-      {selected && (
-        <button className="cabin__3d-reset" onClick={() => setSelected(null)}>
-          Whole vehicle
-        </button>
-      )}
+      {!selected && <span className="cabin__3d-label">Crew locations · live 3D · tap a crew member</span>}
+      {selected && <HealthCard key={selected} id={selected} mode="cabin" onClose={() => setSelected(null)} />}
     </div>
   );
 }

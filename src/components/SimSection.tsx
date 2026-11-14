@@ -8,6 +8,7 @@ import { useInView } from '../lib/useInView';
 import { clampZoom, usePinchZoom } from '../lib/usePinchZoom';
 import { useNow } from '../lib/useRoom';
 import { CabinScreen } from './CabinScreen';
+import { HealthCard } from './HealthCard';
 import { SimPanel } from './SimPanel';
 
 // three.js is large: load the 3D view only when the page needs it.
@@ -109,7 +110,8 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
     if (!el) return;
     // The wheel (or a trackpad pinch) zooms whenever the pointer is over the 3D view.
     const onWheel = (e: WheelEvent) => {
-      if ((e.target as HTMLElement).closest('.sim3d__overlay')) return;
+      // The cabin window and the health card scroll normally.
+      if ((e.target as HTMLElement).closest('.sim3d__overlay, .hcard')) return;
       e.preventDefault();
       zoom.current = clampZoom(zoom.current * Math.exp(e.deltaY * 0.0015));
     };
@@ -192,6 +194,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
             <span>{full ? 'Exit full screen' : 'Full screen'}</span>
           </button>
         </div>
+        {target && !focusScreen && <HealthCard key={target} id={target} mode="full" onClose={() => setTarget(null)} />}
         {screenOpen && <CabinOverlay viewer={viewer} onClose={closeScreen} />}
       </div>
       <SimPanel

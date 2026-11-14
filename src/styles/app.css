@@ -2546,3 +2546,257 @@ html {
     grid-template-columns: 1fr;
   }
 }
+
+/* ---------- Health card beside the 3D views ---------- */
+
+.hcard {
+  position: absolute;
+  z-index: 25;
+  top: 12px;
+  left: 12px;
+  bottom: 56px;
+  width: min(330px, calc(100% - 24px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  touch-action: pan-y;
+  color: var(--text);
+  background: color-mix(in srgb, var(--sheet) 86%, transparent);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: 0 20px 50px rgb(0 0 0 / 0.45);
+  backdrop-filter: blur(14px);
+  animation: hcard-in 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.hcard--cabin {
+  bottom: auto;
+  max-height: calc(100% - 24px);
+  width: min(300px, calc(100% - 24px));
+}
+
+@keyframes hcard-in {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hcard {
+    animation: none;
+  }
+}
+
+.hcard__head {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: start;
+}
+
+.hcard__who {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+}
+
+.hcard__who strong {
+  font-size: 16px;
+}
+
+.hcard__who span {
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.hcard__where {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 6px;
+}
+
+.hcard__where em {
+  padding: 0 6px;
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 50%, transparent);
+  border-radius: 99px;
+}
+
+.hcard__close {
+  width: 30px;
+  height: 30px;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.hcard__status {
+  grid-column: 1 / -1;
+  justify-self: start;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--on-alert);
+  background: var(--lvl);
+  border-radius: 99px;
+}
+
+.hcard__body {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 10px;
+  align-items: start;
+}
+
+.hcard__map .bodymap--compact {
+  width: 72px;
+}
+
+.hcard__vitals {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.hcard__vitals li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas:
+    'label value'
+    'spark spark';
+  gap: 2px 8px;
+  padding: 7px 10px;
+  background: var(--panel);
+  border-radius: 10px;
+  box-shadow: inset 3px 0 0 var(--lvl);
+}
+
+.hcard__label {
+  grid-area: label;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--dim);
+}
+
+.hcard__label em {
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0;
+  color: var(--l1);
+}
+
+.hcard__value {
+  grid-area: value;
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.hcard__vitals li.lvl-1 .hcard__value,
+.hcard__vitals li.lvl-2 .hcard__value,
+.hcard__vitals li.lvl-3 .hcard__value {
+  color: var(--lvl);
+}
+
+.hcard__value small {
+  margin-left: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--dim);
+}
+
+.hcard__vitals .spark {
+  grid-area: spark;
+  height: 18px;
+}
+
+.hcard__nospark {
+  display: none;
+}
+
+.hcard__foot {
+  margin: 0;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.hcard__facts {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.hcard__facts div {
+  display: grid;
+  gap: 2px;
+  padding: 8px 10px;
+  background: var(--panel);
+  border-radius: 10px;
+}
+
+.hcard__facts div.is-alert {
+  background: color-mix(in srgb, var(--l3) 14%, transparent);
+  box-shadow: inset 3px 0 0 var(--l3);
+}
+
+.hcard__facts dt {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.hcard__facts dd {
+  margin: 0;
+  font-size: 13px;
+}
+
+.hcard__private {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--dim);
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+}
+
+.hcard__private .ico {
+  width: 16px;
+  height: 16px;
+  color: var(--accent);
+}
+
+@media (max-width: 640px) {
+  .hcard {
+    top: auto;
+    bottom: 52px;
+    max-height: 62%;
+  }
+}

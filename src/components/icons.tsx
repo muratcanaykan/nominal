@@ -130,6 +130,12 @@ export const icons = {
       <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6" />
     </Icon>
   ),
+  lock: (
+    <Icon>
+      <rect x="5" y="10.5" width="14" height="10" rx="2.5" />
+      <path d="M8 10.5V8a4 4 0 018 0v2.5" />
+    </Icon>
+  ),
   reset: (
     <Icon>
       <path d="M4 12a8 8 0 108-8 8.2 8.2 0 00-6 2.7" />
