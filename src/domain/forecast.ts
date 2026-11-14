@@ -2,7 +2,8 @@
 // level, estimate how soon it gets there.
 // Method: the last 30 seconds of readings (every 2.5 s). The reading must (1) have left the normal noise band around
 // the personal baseline, (2) keep moving the same way (at least 80 % of steps) by a meaningful amount, and (3) keep
-// moving away from the baseline. A straight-line fit then predicts when the next threshold is crossed.
+// moving away from the baseline, and (4) change gradually: no single step may carry most of the change, and the last
+// 10 seconds must still move at a similar pace, so a sudden jump that has already stopped is not mistaken for a trend. A straight-line fit then predicts when the next threshold is crossed.
 // Prototype logic, not clinically validated.
 
 import type { AstronautId } from './crew';
@@ -23,6 +24,12 @@ export interface Forecast {
 const WINDOW_MS = 30_000;
 const STEP_MS = 2_500;
 const HORIZON_MS = 5 * 60_000;
+/** Samples in the recent part of the window (10 s). */
+const RECENT = 5;
+/** The recent pace must be at least this share of the whole window's pace. */
+const RECENT_SHARE = 0.5;
+/** Largest share of the window's change that one step may carry. */
+const MAX_STEP_SHARE = 0.3;
 
 /** Normal variation around the personal baseline; a trend only counts once the reading has left this band. */
 const NOISE_BAND: Partial<Record<VitalId, number>> = {
@@ -72,7 +79,16 @@ function trend(id: AstronautId, vital: VitalId, now: number, state: RoomState | 
   const steady = Math.max(up, down) / (n - 1) >= 0.8;
   const change = vs[n - 1] - vs[0];
   if (!steady || Math.abs(change) < (MIN_CHANGE[vital] ?? Infinity)) return null;
-  // Least-squares slope (value per millisecond).
+  for (let i = 1; i < n; i++) if (Math.abs(vs[i] - vs[i - 1]) > Math.abs(change) * MAX_STEP_SHARE) return null;
+  const slope = fitSlope(ts, vs);
+  const recent = fitSlope(ts.slice(-RECENT), vs.slice(-RECENT));
+  if (Math.sign(recent) !== Math.sign(slope) || Math.abs(recent) < Math.abs(slope) * RECENT_SHARE) return null;
+  return { slope, value: vs[n - 1] };
+}
+
+/** Least-squares slope (value per millisecond). */
+function fitSlope(ts: number[], vs: number[]): number {
+  const n = ts.length;
   const mt = ts.reduce((a, b) => a + b, 0) / n;
   const mv = vs.reduce((a, b) => a + b, 0) / n;
   let num = 0;
@@ -81,7 +97,7 @@ function trend(id: AstronautId, vital: VitalId, now: number, state: RoomState | 
     num += (ts[i] - mt) * (vs[i] - mv);
     den += (ts[i] - mt) ** 2;
   }
-  return { slope: num / den, value: vs[n - 1] };
+  return num / den;
 }
 
 /** The soonest predicted escalation for a crew member, or null when nothing is heading for a worse level. */
