@@ -2,10 +2,10 @@
 // detailed values, trends and timeline. The demo PIN is shown on screen on purpose: judges cannot log in to anything.
 
 import { useState, type FormEvent } from 'react';
-import { CREW, CREW_BY_ID, OSDR_GLUCOSE, PROFILES, type AstronautId } from '../domain/crew';
+import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, OSDR_GLUCOSE, PROFILES, type AstronautId } from '../domain/crew';
 import { locationLabel } from '../domain/locations';
 import type { RoomState } from '../domain/room';
-import { crewSummary, type Snapshot } from '../domain/sim';
+import { crewSummary, MOOD_MISSED_MS, moodPromptStart, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { formatAgo, formatDelay, levelClass } from './bits';
@@ -165,6 +165,10 @@ export function MedicalOverview({ state, now }: { state: RoomState | undefined; 
       }
     }
     if (state?.help?.[a.id]) out.push({ id: a.id, text: 'Help requested', level: 'lvl-3' });
+    const moodSince = moodPromptStart(state, a.id, now, MISSION_DAY_OFFSET_MS);
+    if (s.connected && moodSince !== null && now - moodSince >= MOOD_MISSED_MS) {
+      out.push({ id: a.id, text: `Mood check-in not answered (${formatAgo(now - moodSince)})`, level: 'lvl-1' });
+    }
     return out;
   });
 

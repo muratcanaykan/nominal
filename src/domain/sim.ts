@@ -311,18 +311,30 @@ export function crewSummary(state: RoomState | undefined, now: number): CrewSumm
 export const MOOD_SLOTS_H = [7, 13, 19];
 const MOOD_WINDOW_MS = 60 * 60 * 1000;
 
-/** True when the watch should ask for a mood check-in (requested from the panel, or a scheduled slot). */
-export function moodDue(state: RoomState | undefined, id: AstronautId, now: number, dayOffsetMs: number): boolean {
-  if (!state) return false;
+/** The watch vibrates again if a mood check-in is not answered within 10 s, and marks it unanswered after 30 s. */
+export const MOOD_REMIND_MS = 10_000;
+export const MOOD_MISSED_MS = 30_000;
+
+/**
+ * When the pending mood check-in started (requested from the panel, or a scheduled slot), or null when none is
+ * waiting for an answer.
+ */
+export function moodPromptStart(state: RoomState | undefined, id: AstronautId, now: number, dayOffsetMs: number): number | null {
+  if (!state) return null;
   const last = state.moods?.[id]?.at ?? -Infinity;
   const prompt = state.moodPrompts?.[id];
-  if (prompt && prompt.at <= now && last < prompt.at) return true;
+  if (prompt && prompt.at <= now && last < prompt.at) return prompt.at;
   const missionMs = now - state.createdAt + dayOffsetMs;
   const dayStart = missionMs - (missionMs % DAY_MS);
   const slots = [...MOOD_SLOTS_H.map((h) => dayStart + h * 3600000), ...MOOD_SLOTS_H.map((h) => dayStart - DAY_MS + h * 3600000)];
   const slot = Math.max(...slots.filter((s) => s <= missionMs));
   const slotReal = now - (missionMs - slot);
-  return slotReal >= state.createdAt && now - slotReal < MOOD_WINDOW_MS && last < slotReal;
+  return slotReal >= state.createdAt && now - slotReal < MOOD_WINDOW_MS && last < slotReal ? slotReal : null;
+}
+
+/** True when the watch should ask for a mood check-in. */
+export function moodDue(state: RoomState | undefined, id: AstronautId, now: number, dayOffsetMs: number): boolean {
+  return moodPromptStart(state, id, now, dayOffsetMs) !== null;
 }
 
 /** Mission elapsed time label, e.g. "D12 06:17:42". */

@@ -8,6 +8,7 @@ import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather, type Advis
 import { isEva, locationLabel } from '../domain/locations';
 import { useRoom, useStore } from '../lib/useRoom';
 import { formatAgo, formatDelay } from './bits';
+import { CrewMap } from './CrewMap';
 
 const RESPONSE_STEP: Record<VitalId | 'help', string> = {
   spo2: 'Bring the emergency oxygen kit',
@@ -169,6 +170,12 @@ export function CabinScreen({ now, viewer = '04' }: { now: number; viewer?: Astr
           ))}
         </AnimatePresence>
       </div>
+
+      <CrewMap
+        state={state}
+        alerting={alerting}
+        offline={new Set(CREW.filter((a) => !summary.snapshots[a.id].connected).map((a) => a.id))}
+      />
 
       <ul className="cabin__crew">
         {crew.map((a) => {

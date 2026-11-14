@@ -476,6 +476,35 @@ button:focus-visible {
   color: var(--dim);
 }
 
+.mood.is-reminder .mood__eyebrow {
+  color: var(--l1);
+}
+
+.mood.is-reminder {
+  animation: mood-remind 1.6s ease-in-out infinite;
+}
+
+@keyframes mood-remind {
+  50% {
+    box-shadow: inset 0 0 0 1.4cqw color-mix(in srgb, var(--l1) 55%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mood.is-reminder {
+    animation: none;
+    box-shadow: inset 0 0 0 1.4cqw color-mix(in srgb, var(--l1) 40%, transparent);
+  }
+}
+
+.mood__missed {
+  max-width: 62cqw;
+  font-size: 3cqw;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--l1);
+}
+
 /* Fingerstick keypad */
 .keypad {
   position: absolute;
@@ -971,4 +1000,84 @@ button:focus-visible {
 .pain__clear {
   border-color: var(--l0);
   color: var(--l0);
+}
+
+/* ---------------- Crew map (cabin screen) ---------------- */
+
+.crew-map {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 210px;
+}
+
+.crew-map__zone rect {
+  fill: rgb(255 255 255 / 0.04);
+  stroke: rgb(125 211 252 / 0.35);
+  stroke-width: 1;
+}
+
+.crew-map__zone--eva rect {
+  stroke-dasharray: 5 4;
+  fill: rgb(255 255 255 / 0.02);
+}
+
+.crew-map__zone text {
+  font: 700 10px var(--font-label);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  fill: rgb(125 211 252 / 0.75);
+}
+
+.crew-map__link {
+  stroke: rgb(125 211 252 / 0.35);
+  stroke-width: 6;
+}
+
+.crew-map__crew {
+  transition: transform 0.9s cubic-bezier(0.3, 0.7, 0.2, 1);
+}
+
+.crew-map__crew text {
+  font: 700 10px var(--font-label);
+  letter-spacing: 0.06em;
+  text-anchor: middle;
+  fill: var(--text);
+}
+
+.crew-map__crew circle:not(.crew-map__ring) {
+  stroke: var(--bg);
+  stroke-width: 2;
+}
+
+.crew-map__ring {
+  fill: none;
+  stroke: var(--l3);
+  stroke-width: 3;
+  animation: crew-map-pulse 1s ease-in-out infinite;
+}
+
+.crew-map__crew.is-alert text {
+  fill: var(--l3);
+}
+
+.crew-map__crew.is-offline text {
+  fill: var(--nodata);
+}
+
+@keyframes crew-map-pulse {
+  50% {
+    stroke-opacity: 0.25;
+    stroke-width: 6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .crew-map__crew {
+    transition: none;
+  }
+
+  .crew-map__ring {
+    animation: none;
+  }
 }

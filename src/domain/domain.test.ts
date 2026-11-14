@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryBackend, RoomStore } from '../lib/store';
 import { applyPatch, newRoomState } from './room';
-import { crewSummary, moodDue, snapshot, valueAt } from './sim';
+import { crewSummary, MOOD_MISSED_MS, moodDue, moodPromptStart, snapshot, valueAt } from './sim';
 import { levelFor, routingFor } from './vitals';
 import { radiationAdvisory } from '../data/spaceWeather';
 import { dutyStatus, seesCrewStatus, tabletViews } from './roles';
@@ -263,5 +263,19 @@ describe('sign-in retry', () => {
     await expect(withRetry(async () => { calls++; throw denied; }, [1, 1], isNetworkError, noWait)).rejects.toThrow('denied');
     expect(calls).toBe(1);
     expect(syncErrorMessage(netError())).toMatch(/internet connection/);
+  });
+});
+
+describe('mood check-in reminders', () => {
+  it('knows when the pending check-in started, and clears it once answered', async () => {
+    let now = 5_000_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(now), () => now));
+    await store.askMood('02');
+    const asked = now;
+    now += MOOD_MISSED_MS + 1_000;
+    expect(moodPromptStart(store.current!, '02', now, 0)).toBe(asked);
+    expect(now - asked).toBeGreaterThan(MOOD_MISSED_MS);
+    await store.submitMood('02', 4);
+    expect(moodPromptStart(store.current!, '02', now, 0)).toBeNull();
   });
 });

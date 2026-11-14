@@ -1841,12 +1841,13 @@
 
 .sim-earth {
   display: inline-block;
-  padding: 3px 10px;
-  font: 700 12px var(--font-ui);
-  color: #bfdbfe;
+  padding: 5px 12px;
+  font: 700 13px var(--font-ui);
+  color: #dbeafe;
   white-space: nowrap;
-  background: rgb(12 16 22 / 0.7);
-  border: 1px solid rgb(96 165 250 / 0.5);
+  background: rgb(12 16 22 / 0.88);
+  border: 1px solid rgb(96 165 250 / 0.7);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.5);
   border-radius: 99px;
   pointer-events: none;
 }

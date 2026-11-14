@@ -24,8 +24,8 @@ that helps astronauts assess their own health and guides them on what to do.
 - **Tablet** — each astronaut's own detailed readings, short trends and history. The commander's tablet adds each crew
   member's duty status without any health values. The crew medical officer's tablet adds every crew member's details,
   trends and alert history.
-- **Cabin screen** — a shared display that shows device connectivity and only the alerts that need crew action.
-  Routine health values stay private.
+- **Cabin screen** — a shared display that shows device connectivity, a map of where each crew member is, and only
+  the alerts that need crew action. Routine health values stay private.
 - **Suit sensors and body map** — while a crew member wears the spacesuit (airlock or spacewalk), sensors in the
   helmet, gloves and shoulders report helmet CO₂, water in the helmet, fingertip temperature and suit contact pressure.
   A body map on the tablet and in the medical officer's view colours the region that needs attention. A cold hand

@@ -15,6 +15,8 @@ import { LEVEL_NAMES, type Level, type Status } from '../domain/vitals';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { useNow, useRoom } from '../lib/useRoom';
 import { formatDelay } from '../components/bits';
+import { MAP_ZONES, mapMarkers, type MapMarker } from '../components/CrewMap';
+import { LOCATION_IDS } from '../domain/locations';
 import { orient, regionParts, REGIONS } from './astronautGeometry';
 
 const MODEL_URL = '/models/astronaut-web.glb';
@@ -90,7 +92,7 @@ interface ScreenInfo {
   total: number;
   advisory: boolean;
   alerts: { name: string; location: string; help: boolean; respondedBy?: string }[];
-  crew: { name: string; location: string; alert: boolean; connected: boolean }[];
+  markers: (MapMarker & { alert: boolean; connected: boolean })[];
 }
 
 function useCrewVisuals(): { crew: CrewVisual[]; profile: ProfileId; solar: boolean; screen: ScreenInfo } {
@@ -133,12 +135,7 @@ function useCrewVisuals(): { crew: CrewVisual[]; profile: ProfileId; solar: bool
       help: x.kind === 'help',
       respondedBy: x.claimedBy ? CREW_BY_ID[x.claimedBy].name : undefined,
     })),
-    crew: CREW.map((a) => ({
-      name: a.name,
-      location: locationLabel(st, a.id),
-      alert: alerting.has(a.id),
-      connected: summary.snapshots[a.id].connected,
-    })),
+    markers: mapMarkers(st).map((m) => ({ ...m, alert: alerting.has(m.id), connected: summary.snapshots[m.id].connected })),
   };
   return { crew, profile, solar, screen };
 }
@@ -372,8 +369,9 @@ function Module({ m, level }: { m: ModuleDef; level: Level }) {
           <meshStandardMaterial color="#cbd5e1" metalness={0.6} roughness={0.35} />
         </mesh>
       ))}
-      {Array.from({ length: Math.max(1, Math.round(m.length / 0.9) - 1) }, (_, i) => {
-        const ribs = Math.max(1, Math.round(m.length / 0.9) - 1);
+      {/* An even number of ribs keeps the module centre (where the cabin screen hangs) clear. */}
+      {Array.from({ length: Math.max(2, Math.round(m.length / 0.9)) }, (_, i) => {
+        const ribs = Math.max(2, Math.round(m.length / 0.9));
         const x = -m.length / 2 + ((i + 1) * m.length) / (ribs + 1);
         return (
           <mesh key={`rib-${i}`} position={[x, 0, 0]} rotation={[0, Math.PI / 2, 0]}>
@@ -583,23 +581,44 @@ function drawScreen(ctx: CanvasRenderingContext2D, info: ScreenInfo) {
     ctx.fillText(first.respondedBy ? `${first.location} · ${first.respondedBy} is responding` : first.location, 60, y + 128);
     y += 170;
   }
-  const rowH = first ? 44 : 64;
-  for (const c of info.crew) {
-    roundRect(ctx, 32, y, W - 64, rowH - 8, 12);
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  // Crew location map (same layout as the cabin screen's map).
+  const area = { x: 32, y, w: W - 64, h: H - y - 20 };
+  const k = Math.min(area.w / 600, area.h / 170);
+  const ox = area.x + (area.w - 600 * k) / 2;
+  const oy = area.y + (area.h - 170 * k) / 2;
+  const X = (v: number) => ox + v * k;
+  const Y = (v: number) => oy + v * k;
+  ctx.lineWidth = 2;
+  for (const loc of LOCATION_IDS) {
+    const z = MAP_ZONES[loc];
+    roundRect(ctx, X(z.x), Y(z.y), z.w * k, z.h * k, (loc === 'eva' ? 14 : 20) * k);
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
     ctx.fill();
+    ctx.setLineDash(loc === 'eva' ? [10, 8] : []);
+    ctx.strokeStyle = 'rgba(125,211,252,0.45)';
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(125,211,252,0.85)';
+    ctx.font = font(700, Math.round(11 * k));
+    ctx.fillText(z.label.toUpperCase(), X(z.x + 12), Y(z.y + 18));
+  }
+  for (const m of info.markers) {
+    if (m.alert) {
+      ctx.beginPath();
+      ctx.arc(X(m.x), Y(m.y), 16 * k, 0, Math.PI * 2);
+      ctx.strokeStyle = '#fb5072';
+      ctx.lineWidth = 4;
+      ctx.stroke();
+    }
     ctx.beginPath();
-    ctx.arc(56, y + (rowH - 8) / 2, 7, 0, Math.PI * 2);
-    ctx.fillStyle = !c.connected ? '#94a3b8' : c.alert ? '#fb5072' : '#34d399';
+    ctx.arc(X(m.x), Y(m.y), 10 * k, 0, Math.PI * 2);
+    ctx.fillStyle = m.connected ? m.color : '#64748b';
     ctx.fill();
-    ctx.fillStyle = '#f3f6fa';
-    ctx.font = font(600, first ? 20 : 24);
-    ctx.fillText(c.name, 78, y + (rowH - 8) / 2 + 8);
-    ctx.fillStyle = '#9aa8b8';
-    ctx.textAlign = 'right';
-    ctx.fillText(c.connected ? c.location : 'No data', W - 56, y + (rowH - 8) / 2 + 8);
+    ctx.fillStyle = m.alert ? '#fb5072' : m.connected ? '#f3f6fa' : '#94a3b8';
+    ctx.font = font(700, Math.round(11 * k));
+    ctx.textAlign = 'center';
+    ctx.fillText(m.callsign, X(m.x), Y(m.y + 26));
     ctx.textAlign = 'left';
-    y += rowH;
   }
 }
 
@@ -663,7 +682,21 @@ function CabinScreen3D({ info, focused, onOpen }: { info: ScreenInfo; focused: b
 // ---- data flow: telemetry to the vehicle, alerts to the medical officer, the cabin screen and Earth -------------
 
 const ROUTER = new THREE.Vector3(-0.4, 1.75, 0);
-const EARTH_FAR = new THREE.Vector3(-58, 20, -90);
+// Upper left of the default view, so Earth is in frame on lunar and Mars missions.
+const EARTH_FAR = new THREE.Vector3(-38, 4, -52);
+
+/** Keeps an HTML label inside the 3D view: off-screen targets stick to the nearest edge. */
+const projected = new THREE.Vector3();
+function clampToView(el: THREE.Object3D, camera: THREE.Camera, size: { width: number; height: number }): [number, number] {
+  const p = projected.setFromMatrixPosition(el.matrixWorld).project(camera);
+  let x = (p.x * size.width) / 2 + size.width / 2;
+  let y = (-p.y * size.height) / 2 + size.height / 2;
+  if (p.z > 1) {
+    x = size.width - x;
+    y = size.height - y;
+  }
+  return [Math.min(size.width - 150, Math.max(150, x)), Math.min(size.height - 26, Math.max(26, y))];
+}
 
 function Pulses({ from, to, color, count = 3, speed = 0.5, size = 0.05 }: { from: () => THREE.Vector3 | undefined; to: () => THREE.Vector3 | undefined; color: string; count?: number; speed?: number; size?: number }) {
   const refs = useRef<(THREE.Mesh | null)[]>([]);
@@ -738,11 +771,17 @@ function DataFlow({ crew, positions, profile }: { crew: CrewVisual[]; positions:
       {critical && <Pulses from={router} to={() => earth} color={LEVEL_COLOR[3]} count={4} speed={earthSpeed} size={0.35} />}
       {profile !== 'leo' && (
         <mesh position={EARTH_FAR}>
-          <sphereGeometry args={[2.4, 32, 16]} />
+          <sphereGeometry args={[1.8, 32, 16]} />
           <meshStandardMaterial color="#2563eb" emissive="#1d4ed8" emissiveIntensity={0.5} />
         </mesh>
       )}
-      <Html position={earth.clone().add(new THREE.Vector3(0, profile === 'leo' ? 6 : 4, 0))} center distanceFactor={40} zIndexRange={[10, 0]}>
+      {/* No distanceFactor: the label keeps the same readable size at any zoom. */}
+      <Html
+        position={earth.clone().add(new THREE.Vector3(0, profile === 'leo' ? 6 : 4, 0))}
+        center
+        zIndexRange={[10, 0]}
+        calculatePosition={clampToView}
+      >
         <span className={`sim-earth${critical ? ' is-alert' : ''}`}>
           Earth · {formatDelay(delay)}
           {critical ? ' · flight surgeons notified' : ''}

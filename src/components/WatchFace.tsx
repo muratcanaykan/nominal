@@ -4,7 +4,7 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'motion/re
 import { useEffect, useRef, useState } from 'react';
 import { PAIN_SITE_IDS, PAIN_SITES, type PainSite } from '../domain/body';
 import { CREW_BY_ID, MISSION_DAY_OFFSET_MS, type AstronautId } from '../domain/crew';
-import { missionClock, moodDue, snapshot, type Reading } from '../domain/sim';
+import { missionClock, MOOD_MISSED_MS, MOOD_REMIND_MS, moodPromptStart, snapshot, type Reading } from '../domain/sim';
 import { HAZARDS, LEVEL_NAMES, routingFor, VITALS, type Level, type VitalId } from '../domain/vitals';
 import { isEva } from '../domain/locations';
 import { useRoom, useStore } from '../lib/useRoom';
@@ -174,10 +174,11 @@ function PainSheet({
 
 const MOOD_LABELS = ['Very low', 'Low', 'Okay', 'Good', 'Very good'];
 
-function MoodPrompt({ onPick }: { onPick: (value: number) => void }) {
+function MoodPrompt({ onPick, elapsed }: { onPick: (value: number) => void; elapsed: number }) {
+  const missed = elapsed >= MOOD_MISSED_MS;
   return (
     <motion.div
-      className="mood"
+      className={`mood${elapsed >= MOOD_REMIND_MS ? ' is-reminder' : ''}${missed ? ' is-missed' : ''}`}
       role="dialog"
       aria-label="Mood check-in"
       initial={{ opacity: 0, scale: 0.96 }}
@@ -185,7 +186,7 @@ function MoodPrompt({ onPick }: { onPick: (value: number) => void }) {
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ duration: 0.25 }}
     >
-      <span className="mood__eyebrow">Mood check-in</span>
+      <span className="mood__eyebrow">{elapsed >= MOOD_REMIND_MS ? 'Reminder · mood check-in' : 'Mood check-in'}</span>
       <p className="mood__q">How are you feeling right now?</p>
       <div className="mood__scale">
         {[1, 2, 3, 4, 5].map((v) => (
@@ -198,7 +199,11 @@ function MoodPrompt({ onPick }: { onPick: (value: number) => void }) {
         <span>Very low</span>
         <span>Very good</span>
       </div>
-      <span className="mood__note">Private. Only the medical officer sees trends.</span>
+      {missed ? (
+        <span className="mood__missed">Not answered · {formatAgo(elapsed)} · your medical officer sees this</span>
+      ) : (
+        <span className="mood__note">Private. Only the medical officer sees trends.</span>
+      )}
     </motion.div>
   );
 }
@@ -289,10 +294,22 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
     }
   }, [signalKey, signalLevel, reduce, scope, animateCase]);
 
+  // Mood check-in: a reminder vibration after 10 s without an answer, and an "unanswered" note after 30 s.
+  const moodSince = snap.connected ? moodPromptStart(state ?? undefined, astronautId, now, MISSION_DAY_OFFSET_MS) : null;
+  const moodElapsed = moodSince === null ? 0 : now - moodSince;
+  const remindKey = moodSince !== null && moodElapsed >= MOOD_REMIND_MS ? String(moodSince) : '';
+  const reminded = useRef('');
+  useEffect(() => {
+    if (!remindKey || reminded.current === remindKey) return;
+    reminded.current = remindKey;
+    if ('vibrate' in navigator) navigator.vibrate([180, 120, 180]);
+    if (!reduce && scope.current) animateCase(scope.current, { x: [0, -5, 5, -3, 3, 0] }, { duration: 0.45 });
+  }, [remindKey, reduce, scope, animateCase]);
+
   const confirm = alert ? VITALS[alert.id].confirm : undefined;
   const bannerNote = alert ? readingNote(alert, state, astronautId) : '';
   const fraction = (hr.value - 40) / (180 - 40);
-  const askMood = snap.connected && moodDue(state ?? undefined, astronautId, now, MISSION_DAY_OFFSET_MS);
+  const askMood = moodSince !== null;
 
   return (
     <div className={`watch ${levelClass(status)}`}>
@@ -442,7 +459,7 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
 
           <AnimatePresence>
             {askMood && !info && !keypad && !pain && !(alert && alert.level === 3) && (
-              <MoodPrompt key="mood" onPick={(value) => store.submitMood(astronautId, value)} />
+              <MoodPrompt key="mood" elapsed={moodElapsed} onPick={(value) => store.submitMood(astronautId, value)} />
             )}
           </AnimatePresence>
 
