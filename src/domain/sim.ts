@@ -96,9 +96,36 @@ export function valueAt(id: AstronautId, vital: VitalId, t: number, state?: Room
 export interface Reading {
   id: VitalId;
   value: number;
+  /** Level used for display and escalation. */
   level: Level;
   /** Diastolic pressure for `bloodPressure`. */
   secondary?: number;
+  /** Glucose: the sensor is out of range and waits for a fingerstick test before escalating. */
+  pending?: boolean;
+  /** Glucose: the level the sensor alone would give. */
+  sensorLevel?: Level;
+  /** Glucose: the value comes from a fingerstick test. */
+  confirmed?: boolean;
+}
+
+const GLUCOSE_CHECK_VALID_MS = 30 * 60 * 1000;
+
+/**
+ * Glucose escalation: an out-of-range sensor value stays at watch level (1) until a fingerstick test confirms it.
+ * Level 3 never waits.
+ */
+function applyGlucoseCheck(r: Reading, state: RoomState | undefined, id: AstronautId, t: number) {
+  const check = state?.glucoseChecks?.[id];
+  const sensorChangedAt = state?.overrides?.[id]?.glucose?.startAt ?? 0;
+  if (check && check.at >= sensorChangedAt && t - check.at < GLUCOSE_CHECK_VALID_MS) {
+    r.value = check.value;
+    r.level = levelFor('glucose', check.value);
+    r.confirmed = true;
+  } else if (r.level === 1 || r.level === 2) {
+    r.sensorLevel = r.level;
+    r.level = 1;
+    r.pending = true;
+  }
 }
 
 export interface Snapshot {
@@ -129,6 +156,7 @@ export function snapshot(state: RoomState | undefined, id: AstronautId, now: num
     const value = round(raw, decimals);
     const reading: Reading = { id: vital, value, level: levelFor(vital, value) };
     if (vital === 'bloodPressure') reading.secondary = Math.round(diastolicAt(id, t, raw));
+    if (vital === 'glucose') applyGlucoseCheck(reading, state, id, t);
     readings[vital] = reading;
   }
 
@@ -208,6 +236,24 @@ export function crewSummary(state: RoomState | undefined, now: number): CrewSumm
     }
   }
   return { total: CREW.length, connected, snapshots, alerts };
+}
+
+/** Scheduled mood check-ins, in mission-clock hours. */
+export const MOOD_SLOTS_H = [7, 13, 19];
+const MOOD_WINDOW_MS = 60 * 60 * 1000;
+
+/** True when the watch should ask for a mood check-in (requested from the panel, or a scheduled slot). */
+export function moodDue(state: RoomState | undefined, id: AstronautId, now: number, dayOffsetMs: number): boolean {
+  if (!state) return false;
+  const last = state.moods?.[id]?.at ?? -Infinity;
+  const prompt = state.moodPrompts?.[id];
+  if (prompt && prompt.at <= now && last < prompt.at) return true;
+  const missionMs = now - state.createdAt + dayOffsetMs;
+  const dayStart = missionMs - (missionMs % DAY_MS);
+  const slots = [...MOOD_SLOTS_H.map((h) => dayStart + h * 3600000), ...MOOD_SLOTS_H.map((h) => dayStart - DAY_MS + h * 3600000)];
+  const slot = Math.max(...slots.filter((s) => s <= missionMs));
+  const slotReal = now - (missionMs - slot);
+  return slotReal >= state.createdAt && now - slotReal < MOOD_WINDOW_MS && last < slotReal;
 }
 
 /** Mission elapsed time label, e.g. "D12 06:17:42". */

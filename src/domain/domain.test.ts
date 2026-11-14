@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { MemoryBackend, RoomStore } from '../lib/store';
 import { applyPatch, newRoomState } from './room';
-import { crewSummary, snapshot, valueAt } from './sim';
+import { crewSummary, moodDue, snapshot, valueAt } from './sim';
 import { levelFor, routingFor } from './vitals';
 
 describe('levelFor', () => {
@@ -81,6 +81,36 @@ describe('room store', () => {
     now += 5_000;
     expect(snapshot(store.current!, '04', now).status).toBe('nodata');
     expect(crewSummary(store.current!, now).connected).toBe(3);
+  });
+});
+
+describe('glucose confirmation', () => {
+  it('holds an out-of-range sensor value at watch level until a fingerstick confirms it', async () => {
+    let now = 4_000_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(now), () => now));
+    await store.runScenario('03', 'lowGlucose');
+    now += 10_000;
+    const g = snapshot(store.current!, '03', now).readings.glucose;
+    expect(g).toMatchObject({ pending: true, level: 1, sensorLevel: 1 });
+
+    await store.submitGlucoseCheck('03', 50);
+    const c = snapshot(store.current!, '03', now).readings.glucose;
+    expect(c).toMatchObject({ confirmed: true, value: 50, level: 2 });
+    expect(routingFor(c.level).cmo).toBe(true);
+  });
+});
+
+describe('mood check-in', () => {
+  it('is due after a request and clears once answered', async () => {
+    let now = 5_000_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(now), () => now));
+    expect(moodDue(store.current!, '01', now, 0)).toBe(false);
+    await store.askMood('01');
+    expect(moodDue(store.current!, '01', now, 0)).toBe(true);
+    now += 1000;
+    await store.submitMood('01', 2);
+    expect(moodDue(store.current!, '01', now, 0)).toBe(false);
+    expect(snapshot(store.current!, '01', now).readings.mood.level).toBe(1);
   });
 });
 

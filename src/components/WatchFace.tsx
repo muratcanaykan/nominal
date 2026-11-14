@@ -3,7 +3,7 @@
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
 import { CREW_BY_ID, MISSION_DAY_OFFSET_MS, type AstronautId } from '../domain/crew';
-import { missionClock, snapshot, type Reading } from '../domain/sim';
+import { missionClock, moodDue, snapshot, type Reading } from '../domain/sim';
 import { HAZARDS, LEVEL_NAMES, routingFor, VITALS, type Level, type VitalId } from '../domain/vitals';
 import { useRoom, useStore } from '../lib/useRoom';
 import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, levelClass, ShortLabel, SignalOffIcon, type Variant } from './bits';
@@ -138,12 +138,90 @@ function InfoSheet({
   );
 }
 
+const MOOD_LABELS = ['Very low', 'Low', 'Okay', 'Good', 'Very good'];
+
+function MoodPrompt({ onPick }: { onPick: (value: number) => void }) {
+  return (
+    <motion.div
+      className="mood"
+      role="dialog"
+      aria-label="Mood check-in"
+      initial={{ opacity: 0, scale: 0.96 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.25 }}
+    >
+      <span className="mood__eyebrow">Mood check-in</span>
+      <p className="mood__q">How are you feeling right now?</p>
+      <div className="mood__scale">
+        {[1, 2, 3, 4, 5].map((v) => (
+          <button key={v} className={`mood__btn mood__btn--${v}`} onClick={() => onPick(v)} aria-label={`${v}, ${MOOD_LABELS[v - 1]}`}>
+            {v}
+          </button>
+        ))}
+      </div>
+      <div className="mood__ends">
+        <span>Very low</span>
+        <span>Very good</span>
+      </div>
+      <span className="mood__note">Private. Only the medical officer sees trends.</span>
+    </motion.div>
+  );
+}
+
+function Keypad({ onSubmit, onCancel }: { onSubmit: (value: number) => void; onCancel: () => void }) {
+  const [v, setV] = useState('');
+  const num = Number(v);
+  const valid = v.length > 0 && num >= 20 && num <= 600;
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+  return (
+    <motion.div
+      className="keypad"
+      role="dialog"
+      aria-label="Enter fingerstick glucose"
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+    >
+      <div className="keypad__head">
+        <span>Fingerstick glucose</span>
+        <button className="keypad__close" onClick={onCancel} aria-label="Cancel">
+          ×
+        </button>
+      </div>
+      <span className="keypad__display" aria-live="polite">
+        {v || '—'}
+        <small>mg/dL</small>
+      </span>
+      <div className="keypad__grid">
+        {keys.map((k) =>
+          k === 'del' ? (
+            <button key={k} onClick={() => setV((prev) => prev.slice(0, -1))} aria-label="Delete">
+              ⌫
+            </button>
+          ) : k === 'ok' ? (
+            <button key={k} className="keypad__ok" disabled={!valid} onClick={() => onSubmit(num)} aria-label="Save">
+              ✓
+            </button>
+          ) : (
+            <button key={k} onClick={() => setV((prev) => (prev.length < 3 ? prev + k : prev))}>
+              {k}
+            </button>
+          ),
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
 export function WatchFace({ variant, astronautId, now }: { variant: Variant; astronautId: AstronautId; now: number }) {
   const { state } = useRoom();
   const store = useStore();
   const reduce = useReducedMotion();
   const [scope, animateCase] = useAnimate();
   const [info, setInfo] = useState<VitalId | null>(null);
+  const [keypad, setKeypad] = useState(false);
   const astronaut = CREW_BY_ID[astronautId];
   const snap = snapshot(state ?? undefined, astronautId, now);
   const hr = snap.readings.heartRate;
@@ -168,6 +246,7 @@ export function WatchFace({ variant, astronautId, now }: { variant: Variant; ast
   }, [alertKey, alert, reduce, scope, animateCase]);
 
   const fraction = (hr.value - 40) / (180 - 40);
+  const askMood = snap.connected && moodDue(state ?? undefined, astronautId, now, MISSION_DAY_OFFSET_MS);
 
   return (
     <div className={`watch v-${variant} ${levelClass(status)}`}>
@@ -218,11 +297,17 @@ export function WatchFace({ variant, astronautId, now }: { variant: Variant; ast
                   <strong>{LEVEL_NAMES[alert.level]}</strong>
                   <span>
                     {VITALS[alert.id].label} {alert.value.toFixed(VITALS[alert.id].decimals)} {VITALS[alert.id].unit}
+                    {alert.pending ? ' (sensor)' : alert.confirmed ? ' (fingerstick)' : ''}
                   </span>
+                  {alert.pending && <em>Confirm with a fingerstick test</em>}
                   {routingFor(alert.level).cmo && <em>Medical officer notified</em>}
                 </div>
                 <div className="banner__buttons">
-                  <button onClick={() => setInfo(alert.id)}>What to do</button>
+                  {alert.pending ? (
+                    <button onClick={() => setKeypad(true)}>Fingerstick</button>
+                  ) : (
+                    <button onClick={() => setInfo(alert.id)}>What to do</button>
+                  )}
                   <button onClick={() => store.acknowledge(astronautId, alert.id, alert.level)}>OK</button>
                 </div>
               </motion.div>
@@ -272,6 +357,25 @@ export function WatchFace({ variant, astronautId, now }: { variant: Variant; ast
               <motion.div className="help-toast" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}>
                 Help requested · crew notified
               </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {askMood && !info && !keypad && !(alert && alert.level === 3) && (
+              <MoodPrompt key="mood" onPick={(value) => store.submitMood(astronautId, value)} />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {keypad && (
+              <Keypad
+                key="keypad"
+                onCancel={() => setKeypad(false)}
+                onSubmit={(value) => {
+                  store.submitGlucoseCheck(astronautId, value);
+                  setKeypad(false);
+                }}
+              />
             )}
           </AnimatePresence>
 

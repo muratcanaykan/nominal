@@ -245,9 +245,9 @@ button:focus-visible {
 /* Banner for level 1–2 */
 .banner {
   position: absolute;
-  left: 9%;
-  right: 9%;
-  top: 12%;
+  left: 13%;
+  right: 13%;
+  top: 17%;
   z-index: 3;
   display: grid;
   gap: 2cqw;
@@ -403,6 +403,150 @@ button:focus-visible {
   border-radius: var(--radius-sm);
   background: var(--l3);
   color: var(--on-alert);
+}
+
+/* Mood check-in */
+.mood {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 2.6cqw;
+  padding: 14%;
+  text-align: center;
+  background: var(--sheet);
+  color: var(--text);
+}
+
+.mood__eyebrow {
+  font-family: var(--font-label);
+  font-size: 3.6cqw;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.mood__q {
+  margin: 0;
+  font-size: 5.6cqw;
+  font-weight: 600;
+  line-height: 1.25;
+  max-width: 60cqw;
+}
+
+.mood__scale {
+  display: flex;
+  gap: 2cqw;
+}
+
+.mood__btn {
+  width: 10.5cqw;
+  height: 10.5cqw;
+  border-radius: 50%;
+  border: 2px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font-family: var(--font-num);
+  font-size: 4.8cqw;
+  font-weight: 700;
+}
+
+.mood__btn--1,
+.mood__btn--2 {
+  border-color: var(--l1);
+}
+
+.mood__btn--4,
+.mood__btn--5 {
+  border-color: var(--l0);
+}
+
+.mood__ends {
+  display: flex;
+  justify-content: space-between;
+  width: 60cqw;
+  font-size: 3.2cqw;
+  color: var(--dim);
+}
+
+.mood__note {
+  font-size: 3cqw;
+  color: var(--dim);
+}
+
+/* Fingerstick keypad */
+.keypad {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 1.8cqw;
+  background: var(--sheet);
+  color: var(--text);
+}
+
+.keypad__head {
+  display: flex;
+  align-items: center;
+  gap: 3cqw;
+  font-family: var(--font-label);
+  font-size: 3.6cqw;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.keypad__close {
+  width: 8cqw;
+  height: 8cqw;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  font-size: 5cqw;
+  line-height: 1;
+}
+
+.keypad__display {
+  font-family: var(--font-num);
+  font-size: 9cqw;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.keypad__display small {
+  margin-left: 1.5cqw;
+  font-size: 0.4em;
+  color: var(--dim);
+}
+
+.keypad__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 16cqw);
+  gap: 1.6cqw;
+}
+
+.keypad__grid button {
+  height: 9.5cqw;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  font-family: var(--font-num);
+  font-size: 5cqw;
+  font-weight: 600;
+}
+
+.keypad__grid .keypad__ok {
+  background: var(--l0);
+  border-color: var(--l0);
+  color: var(--on-alert);
+}
+
+.keypad__grid .keypad__ok:disabled {
+  opacity: 0.35;
 }
 
 /* Guidance sheet */

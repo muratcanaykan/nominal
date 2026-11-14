@@ -68,7 +68,7 @@ export class FirebaseBackend implements Backend {
     await set(ref(db, this.path), state);
   }
 
-  subscribe(listener: (state: RoomState | null, status: RoomStatus) => void) {
+  subscribe(listener: (state: RoomState | null, status: RoomStatus, error?: string) => void) {
     let unsub: (() => void) | undefined;
     let cancelled = false;
     listener(null, 'connecting');
@@ -83,12 +83,12 @@ export class FirebaseBackend implements Backend {
               const val = snap.val() as RoomState | null;
               listener(val, val ? 'ready' : 'missing');
             },
-            () => listener(null, 'error'),
+            (e) => listener(null, 'error', `Sync read failed: ${e.message}`),
           );
         })
-        .catch(() => listener(null, 'error'));
-    } catch {
-      listener(null, 'error');
+        .catch((e: Error) => listener(null, 'error', `Anonymous sign-in failed: ${e.message}`));
+    } catch (e) {
+      listener(null, 'error', e instanceof Error ? e.message : String(e));
     }
     return () => {
       cancelled = true;

@@ -21,6 +21,12 @@ export interface RoomState {
   /** Acknowledged alerts, keyed `${vital}-${level}`. */
   acks?: Partial<Record<AstronautId, Record<string, number>>>;
   moods?: Partial<Record<AstronautId, { value: number; at: number }>>;
+  /** A mood check-in requested from the control panel (scheduled ones are computed from the clock). */
+  moodPrompts?: Partial<Record<AstronautId, { at: number }>>;
+  /** Fingerstick glucose tests entered on the watch. */
+  glucoseChecks?: Partial<Record<AstronautId, { value: number; at: number }>>;
+  /** Demo trigger for a solar particle event (real events come from NASA DONKI). */
+  spaceWeather?: { sepAt?: number };
 }
 
 export const ackKey = (vital: VitalId, level: Level) => `${vital}-${level}`;

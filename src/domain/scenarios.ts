@@ -1,7 +1,7 @@
 // Demo scenarios: one click moves an astronaut's indicators so every screen shows the same story.
 
 import type { AstronautId } from './crew';
-import type { Patch } from './room';
+import type { Patch, RoomState } from './room';
 import type { VitalId } from './vitals';
 
 export type ScenarioId = 'nominal' | 'caution' | 'warning' | 'critical' | 'fever' | 'lowGlucose' | 'nodata';
@@ -24,6 +24,21 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
 };
 
 const RAMP_MS = 4000;
+
+/** Which scenario an astronaut is currently in, if it matches one exactly. */
+export function activeScenario(state: RoomState | null | undefined, id: AstronautId): ScenarioId | undefined {
+  if (state?.disconnects?.[id]) return 'nodata';
+  const o = state?.overrides?.[id];
+  if (!o) return 'nominal';
+  return (Object.keys(SCENARIOS) as ScenarioId[]).find((sid) => {
+    const t = SCENARIOS[sid].targets;
+    return (
+      t &&
+      Object.keys(t).length === Object.keys(o).length &&
+      Object.entries(t).every(([k, v]) => o[k as VitalId]?.target === v)
+    );
+  });
+}
 
 /** Patch that clears an astronaut's previous scenario and starts a new one. */
 export function scenarioPatch(id: AstronautId, scenario: ScenarioId, now: number): Patch {
