@@ -1085,6 +1085,8 @@ button:focus-visible {
 /* ---------------- Live 3D view on the cabin screen ---------------- */
 
 .cabin__3d {
+  touch-action: none;
+  overscroll-behavior: contain;
   position: relative;
   height: clamp(220px, 34vw, 380px);
   overflow: hidden;

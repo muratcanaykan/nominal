@@ -33,7 +33,6 @@ export function CabinView3D({ fallback, foreground = false }: { fallback: ReactN
         <Suspense fallback={fallback}>
           <Sim3D
             mode="cabin"
-            touchScroll
             active={visible && (foreground || !simFull)}
             zoom={zoom}
             selected={selected}

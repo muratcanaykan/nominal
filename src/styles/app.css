@@ -1499,6 +1499,9 @@
 }
 
 .sim3d__view {
+  /* Touches inside the 3D view only turn and zoom the view; the page around it never scrolls or zooms. */
+  touch-action: none;
+  overscroll-behavior: contain;
   position: relative;
   min-width: 0;
   height: 520px;

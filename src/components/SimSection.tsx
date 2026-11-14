@@ -166,7 +166,6 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
               // While the cabin screen is open in front, its own 3D view runs and this one pauses (only one renders).
               active={(onScreen || full) && !screenOpen}
               quality={full ? 'light' : 'normal'}
-              touchScroll={!full}
             />
           </Suspense>
         </SimBoundary>
