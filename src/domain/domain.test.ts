@@ -3,6 +3,7 @@ import { MemoryBackend, RoomStore } from '../lib/store';
 import { applyPatch, newRoomState } from './room';
 import { crewSummary, moodDue, snapshot, valueAt } from './sim';
 import { levelFor, routingFor } from './vitals';
+import { radiationAdvisory } from '../data/spaceWeather';
 
 describe('levelFor', () => {
   it('maps values to nested threshold bands', () => {
@@ -119,5 +120,23 @@ describe('applyPatch', () => {
     const s = applyPatch({ a: { b: 1, c: 2 } }, { 'a/b': null, 'x/y/z': 3 });
     expect(s).toEqual({ a: { c: 2 }, x: { y: { z: 3 } } });
     expect(applyPatch({ a: { b: 1 } }, { 'a/b': null })).toEqual({});
+  });
+});
+
+describe('radiation advisory', () => {
+  const weather = (time: string) => ({ source: 'test', fetchedAt: time, notifications: [], sep: [{ id: 'x', time, url: 'u' }] });
+
+  it('is active for 72 hours after a DONKI solar particle event', () => {
+    const t = Date.parse('2026-11-10T12:00Z');
+    expect(radiationAdvisory(newRoomState(0), weather('2026-11-10T12:00Z'), t + 3_600_000)?.source).toBe('donki');
+    expect(radiationAdvisory(newRoomState(0), weather('2026-11-10T12:00Z'), t + 73 * 3_600_000)).toBeNull();
+  });
+
+  it('can be simulated from the control panel', async () => {
+    const now = 6_000_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(now), () => now));
+    expect(radiationAdvisory(store.current, null, now)).toBeNull();
+    await store.simulateSolarEvent(true);
+    expect(radiationAdvisory(store.current, null, now)?.source).toBe('simulated');
   });
 });

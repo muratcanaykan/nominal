@@ -901,8 +901,33 @@ button:focus-visible {
 }
 
 .cabin__note {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
   font-size: 12px;
   color: var(--dim);
+}
+
+.cabin__status.is-advisory {
+  border-left-color: var(--l2);
+}
+
+.cabin__status.is-advisory .cabin__status-main {
+  color: var(--l2);
+}
+
+.event--advisory {
+  border-color: var(--l2);
+  background: color-mix(in srgb, var(--l2) 10%, var(--panel));
+}
+
+.event--advisory .event__kind {
+  color: var(--l2);
+}
+
+.v-suit .event--advisory::before {
+  background: repeating-linear-gradient(-45deg, #111 0 7px, var(--l2) 7px 14px);
 }
 
 @media (max-width: 640px) {

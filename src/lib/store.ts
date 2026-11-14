@@ -143,6 +143,10 @@ export class RoomStore {
     return this.update({ [`acks/${id}/${ackKey(vital, level)}`]: this.now() });
   }
 
+  acknowledgeAdvisory(id: AstronautId, level: Level) {
+    return this.update({ [`acks/${id}/radiation-${level}`]: this.now() });
+  }
+
   askMood(id: AstronautId) {
     return this.update({ [`moodPrompts/${id}`]: { at: this.now() } });
   }

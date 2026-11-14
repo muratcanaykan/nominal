@@ -9,6 +9,7 @@ import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS, type VitalId } from '../dom
 import type { RoomState } from '../domain/room';
 import { formatAgo, formatDelay, levelClass, ShortLabel } from '../components/bits';
 import { useNow, useRoom } from '../lib/useRoom';
+import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 
 const DEMO_PIN = '2468';
 const UNLOCK_KEY = 'nominal:cmo';
@@ -124,6 +125,55 @@ function CrewCard({ s, state, now }: { s: Snapshot; state: RoomState | undefined
   );
 }
 
+function SpaceWeatherPanel({ state, now }: { state: RoomState | undefined; now: number }) {
+  const weather = useSpaceWeather();
+  const advisory = radiationAdvisory(state, weather, now);
+  const recent = [...(weather?.notifications ?? [])]
+    .filter((n) => n.type !== 'Report')
+    .sort((a, b) => Date.parse(b.time) - Date.parse(a.time))
+    .slice(0, 6);
+  return (
+    <section className="panel">
+      <h2 className="panel__title">Space weather · NASA DONKI</h2>
+      <p className={`wx-status${advisory ? ' is-advisory' : ''}`}>
+        {advisory
+          ? advisory.source === 'simulated'
+            ? 'Radiation advisory: simulated solar particle event. Spacewalk crew return to the vehicle; all crew move to the most shielded area.'
+            : 'Radiation advisory: NASA DONKI reports a solar particle event in the last 72 hours.'
+          : 'No solar particle event in the last 72 hours. No radiation advisory.'}
+      </p>
+      {weather ? (
+        recent.length > 0 ? (
+          <ul className="wx-list">
+            {recent.map((n) => (
+              <li key={n.id}>
+                <div className="wx-list__head">
+                  <strong>{DONKI_LABELS[n.type] ?? n.type}</strong>
+                  <time>{formatDay(n.time)}</time>
+                </div>
+                <p>{n.summary}</p>
+                <a href={n.url} target="_blank" rel="noopener">
+                  DONKI record
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="cmo-empty">No space weather events in the last 30 days.</p>
+        )
+      ) : (
+        <p className="cmo-empty">Loading space weather…</p>
+      )}
+      {weather && (
+        <p className="panel__hint">
+          Source: NASA DONKI via api.nasa.gov · updated {formatDay(weather.fetchedAt)}
+          {weather.live ? '' : ' (saved snapshot)'}
+        </p>
+      )}
+    </section>
+  );
+}
+
 function PinGate({ onUnlock }: { onUnlock: () => void }) {
   const [pin, setPin] = useState('');
   const [wrong, setWrong] = useState(false);
@@ -234,6 +284,8 @@ export function CmoPage() {
           </ul>
         )}
       </section>
+
+      <SpaceWeatherPanel state={st} now={now} />
 
       <section className="cmo-grid" aria-label="Crew details">
         {CREW.map((a) => (

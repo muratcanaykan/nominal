@@ -6,6 +6,7 @@ import { CREW_BY_ID, MISSION_DAY_OFFSET_MS, type AstronautId } from '../domain/c
 import { missionClock, moodDue, snapshot, type Reading } from '../domain/sim';
 import { HAZARDS, LEVEL_NAMES, routingFor, VITALS, type Level, type VitalId } from '../domain/vitals';
 import { useRoom, useStore } from '../lib/useRoom';
+import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, levelClass, ShortLabel, SignalOffIcon, type Variant } from './bits';
 
 const COMPLICATIONS: VitalId[] = ['spo2', 'bodyTemp', 'glucose'];
@@ -229,21 +230,29 @@ export function WatchFace({ variant, astronautId, now }: { variant: Variant; ast
   const help = state?.help?.[astronautId];
   const status = snap.status;
 
+  // Radiation advisory (NASA DONKI or simulated): spacewalk crew get a warning, everyone else a caution.
+  const weather = useSpaceWeather();
+  const advisory = radiationAdvisory(state, weather, now);
+  const radLevel: Level = astronaut.onEva ? 2 : 1;
+  const showRad = snap.connected && !!advisory && !alert && !state?.acks?.[astronautId]?.[`radiation-${radLevel}`];
+
   // Vibrate and shake when a new alert appears or escalates.
   const alertKey = alert ? `${alert.id}-${alert.level}` : '';
+  const signalKey = alertKey || (showRad ? `radiation-${radLevel}` : '');
+  const signalLevel: Level = alert ? alert.level : showRad ? radLevel : 0;
   const lastKey = useRef('');
   useEffect(() => {
-    if (!alertKey || alertKey === lastKey.current || !alert) {
-      lastKey.current = alertKey;
+    if (!signalKey || signalKey === lastKey.current) {
+      lastKey.current = signalKey;
       return;
     }
-    lastKey.current = alertKey;
-    const pattern = VIBRATION[alert.level];
+    lastKey.current = signalKey;
+    const pattern = VIBRATION[signalLevel];
     if (pattern.length && 'vibrate' in navigator) navigator.vibrate(pattern);
-    if (!reduce && alert.level >= 2 && scope.current) {
+    if (!reduce && signalLevel >= 2 && scope.current) {
       animateCase(scope.current, { x: [0, -7, 7, -5, 5, -2, 0] }, { duration: 0.5 });
     }
-  }, [alertKey, alert, reduce, scope, animateCase]);
+  }, [signalKey, signalLevel, reduce, scope, animateCase]);
 
   const fraction = (hr.value - 40) / (180 - 40);
   const askMood = snap.connected && moodDue(state ?? undefined, astronautId, now, MISSION_DAY_OFFSET_MS);
@@ -309,6 +318,28 @@ export function WatchFace({ variant, astronautId, now }: { variant: Variant; ast
                     <button onClick={() => setInfo(alert.id)}>What to do</button>
                   )}
                   <button onClick={() => store.acknowledge(astronautId, alert.id, alert.level)}>OK</button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {showRad && (
+              <motion.div
+                key="radiation"
+                className={`banner ${levelClass(radLevel)}`}
+                initial={{ y: -40, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: -40, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 420, damping: 30 }}
+              >
+                <div className="banner__text">
+                  <strong>Radiation advisory</strong>
+                  <span>Solar particle event</span>
+                  <em>{astronaut.onEva ? 'Return to the vehicle now' : 'Move to the most shielded area'}</em>
+                </div>
+                <div className="banner__buttons">
+                  <button onClick={() => store.acknowledgeAdvisory(astronautId, radLevel)}>OK</button>
                 </div>
               </motion.div>
             )}

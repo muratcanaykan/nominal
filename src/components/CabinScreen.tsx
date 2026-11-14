@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from 'motion/react';
 import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, PROFILES, type AstronautId } from '../domain/crew';
 import { crewSummary, missionClock, type CrewAlert } from '../domain/sim';
 import type { VitalId } from '../domain/vitals';
+import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather, type Advisory } from '../data/spaceWeather';
 import { useRoom, useStore } from '../lib/useRoom';
 import { formatAgo, formatDelay, type Variant } from './bits';
 
@@ -80,6 +81,38 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
   );
 }
 
+function AdvisoryCard({ advisory, now }: { advisory: Advisory; now: number }) {
+  const eva = CREW.filter((c) => c.onEva);
+  return (
+    <motion.article
+      layout
+      className="event event--advisory"
+      initial={{ opacity: 0, y: -16, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -12, scale: 0.98 }}
+      transition={{ type: 'spring', stiffness: 380, damping: 32 }}
+    >
+      <header className="event__head">
+        <span className="event__kind">Radiation advisory</span>
+        <span className="event__time">{formatAgo(now - advisory.since)}</span>
+      </header>
+      <h3 className="event__name">Solar particle event</h3>
+      <dl className="event__facts">
+        <div>
+          <dt>Response</dt>
+          <dd>
+            {eva.length > 0 && `${eva.map((c) => c.name).join(', ')}: return to the vehicle · `}All crew: move to the most shielded area
+          </dd>
+        </div>
+        <div>
+          <dt>Source</dt>
+          <dd>{advisory.source === 'simulated' ? 'Simulated for this demo' : 'NASA DONKI solar energetic particle event'}</dd>
+        </div>
+      </dl>
+    </motion.article>
+  );
+}
+
 export function CabinScreen({ variant, now, viewer = '04' }: { variant: Variant; now: number; viewer?: AstronautId }) {
   const { state } = useRoom();
   const summary = crewSummary(state ?? undefined, now);
@@ -87,6 +120,16 @@ export function CabinScreen({ variant, now, viewer = '04' }: { variant: Variant;
   const alerting = new Set(summary.alerts.map((a) => a.astronautId));
   const crew = [...CREW].sort((x, y) => Number(alerting.has(y.id)) - Number(alerting.has(x.id)));
   const n = summary.alerts.length;
+  const weather = useSpaceWeather();
+  const advisory = radiationAdvisory(state, weather, now);
+  const lastEvent = [...(weather?.notifications ?? [])]
+    .filter((e) => e.type !== 'Report')
+    .sort((a, b) => Date.parse(b.time) - Date.parse(a.time))[0];
+  const statusMain = n
+    ? `${n} crew alert${n > 1 ? 's' : ''}${advisory ? ' · radiation advisory' : ''}`
+    : advisory
+      ? 'Radiation advisory'
+      : 'No active crew alerts';
 
   return (
     <section className={`cabin v-${variant}${n ? ' has-alert' : ''}`} aria-label="Cabin crew status screen">
@@ -102,8 +145,8 @@ export function CabinScreen({ variant, now, viewer = '04' }: { variant: Variant;
         </div>
       </header>
 
-      <div className={`cabin__status${n ? ' is-alert' : ''}`} role="status">
-        <span className="cabin__status-main">{n ? `${n} crew alert${n > 1 ? 's' : ''}` : 'No active crew alerts'}</span>
+      <div className={`cabin__status${n ? ' is-alert' : advisory ? ' is-advisory' : ''}`} role="status">
+        <span className="cabin__status-main">{statusMain}</span>
         <span className="cabin__status-sub">
           {summary.connected}/{summary.total} devices connected
         </span>
@@ -111,6 +154,7 @@ export function CabinScreen({ variant, now, viewer = '04' }: { variant: Variant;
 
       <div className="cabin__events">
         <AnimatePresence initial={false}>
+          {advisory && <AdvisoryCard key="radiation" advisory={advisory} now={now} />}
           {summary.alerts.map((a) => (
             <EventCard key={`${a.astronautId}-${a.kind}`} alert={a} now={now} viewer={viewer} />
           ))}
@@ -139,7 +183,15 @@ export function CabinScreen({ variant, now, viewer = '04' }: { variant: Variant;
         })}
       </ul>
 
-      <footer className="cabin__note">Routine health values stay private to each crew member · Simulated data</footer>
+      <footer className="cabin__note">
+        <span>Routine health values stay private to each crew member · Simulated data</span>
+        {weather && (
+          <span>
+            Space weather (NASA DONKI):{' '}
+            {lastEvent ? `${DONKI_LABELS[lastEvent.type] ?? lastEvent.type}, ${formatDay(lastEvent.time)}` : 'no events in 30 days'}
+          </span>
+        )}
+      </footer>
     </section>
   );
 }

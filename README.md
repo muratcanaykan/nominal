@@ -39,6 +39,10 @@ that helps astronauts assess their own health and guides them on what to do.
 - NASA Human Research Program — [5 Hazards of Human Spaceflight](https://www.nasa.gov/hrp/hazards/)
 - NASA Human Research Program — [Risks of Human Spaceflight](https://www.nasa.gov/hrp/risks/)
 - NASA Human Research Program — [Ongoing HRP Research in Space](https://www.nasa.gov/hrp/ongoing-hrp-research/)
+- NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information) via [api.nasa.gov](https://api.nasa.gov/)
+  — a solar energetic particle event in the last 72 hours raises a radiation advisory on every screen, and recent
+  space weather events are listed in the medical officer view. Data is saved at build time
+  ([`scripts/fetch-donki.mjs`](scripts/fetch-donki.mjs)) and refreshed live in the browser.
 
 ## Space agency partner resources
 
