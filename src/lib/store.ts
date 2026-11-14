@@ -1,6 +1,8 @@
 // Room store: the same actions work against Firebase (cross-device) or memory (single page).
 
+import type { PainSite } from '../domain/body';
 import type { AstronautId, ProfileId } from '../domain/crew';
+import type { LocationId } from '../domain/locations';
 import { ackKey, applyPatch, newRoomState, type Patch, type RoomState } from '../domain/room';
 import { scenarioPatch, type ScenarioId } from '../domain/scenarios';
 import type { Level, VitalId } from '../domain/vitals';
@@ -157,6 +159,27 @@ export class RoomStore {
 
   submitGlucoseCheck(id: AstronautId, value: number) {
     return this.update({ [`glucoseChecks/${id}`]: { value, at: this.now() } });
+  }
+
+  setLocation(id: AstronautId, location: LocationId) {
+    return this.update({ [`locations/${id}`]: location });
+  }
+
+  /** Answer to a sensor's symptom question on the watch, such as "Do your fingers feel numb?". */
+  answerSymptom(id: AstronautId, vital: VitalId, yes: boolean) {
+    return this.update({ [`symptomChecks/${id}/${vital}`]: { yes, at: this.now() } });
+  }
+
+  reportPain(id: AstronautId, site: PainSite, value: number) {
+    return this.update({
+      [`reports/${id}/jointPain`]: { value, site, at: this.now() },
+      [`acks/${id}/${ackKey('jointPain', 1)}`]: null,
+      [`acks/${id}/${ackKey('jointPain', 2)}`]: null,
+    });
+  }
+
+  clearPain(id: AstronautId) {
+    return this.update({ [`reports/${id}/jointPain`]: null });
   }
 
   simulateSolarEvent(on: boolean) {

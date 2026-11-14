@@ -2,12 +2,15 @@
 
 import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'motion/react';
 import { useEffect, useRef, useState } from 'react';
+import { PAIN_SITE_IDS, PAIN_SITES, type PainSite } from '../domain/body';
 import { CREW_BY_ID, MISSION_DAY_OFFSET_MS, type AstronautId } from '../domain/crew';
 import { missionClock, moodDue, snapshot, type Reading } from '../domain/sim';
 import { HAZARDS, LEVEL_NAMES, routingFor, VITALS, type Level, type VitalId } from '../domain/vitals';
+import { isEva } from '../domain/locations';
 import { useRoom, useStore } from '../lib/useRoom';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
-import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, levelClass, ShortLabel, SignalOffIcon } from './bits';
+import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, levelClass, PainIcon, ShortLabel, SignalOffIcon } from './bits';
+import { readingNote, readingValue } from './health';
 
 const COMPLICATIONS: VitalId[] = ['spo2', 'bodyTemp', 'glucose'];
 
@@ -57,7 +60,7 @@ function InfoSheet({
   const [vital, setVital] = useState<VitalId>(initial);
   const r = readings[vital];
   const def = VITALS[vital];
-  const value = vital === 'bloodPressure' ? `${r.value}/${r.secondary}` : r.value.toFixed(def.decimals);
+  const value = readingValue(r);
   return (
     <motion.div
       className="sheet"
@@ -86,7 +89,7 @@ function InfoSheet({
         ))}
       </div>
       <div className="sheet__list">
-        {(Object.keys(readings) as VitalId[]).map((id) => (
+        {(Object.keys(readings) as VitalId[]).filter((id) => !readings[id].inactive).map((id) => (
           <button
             key={id}
             className={`sheet__item ${levelClass(readings[id].level)}${id === vital ? ' is-active' : ''}`}
@@ -96,6 +99,75 @@ function InfoSheet({
           </button>
         ))}
       </div>
+    </motion.div>
+  );
+}
+
+const PAIN_LEVELS: [string, number][] = [
+  ['Mild', 2],
+  ['Moderate', 4],
+  ['Severe', 8],
+];
+
+function PainSheet({
+  reported,
+  onReport,
+  onClear,
+  onClose,
+}: {
+  reported: boolean;
+  onReport: (site: PainSite, value: number) => void;
+  onClear: () => void;
+  onClose: () => void;
+}) {
+  const [site, setSite] = useState<PainSite | null>(null);
+  return (
+    <motion.div
+      className="sheet pain"
+      role="dialog"
+      aria-label="Report joint pain"
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', stiffness: 380, damping: 36 }}
+    >
+      <div className="sheet__head">
+        <span className="sheet__badge lvl-1">Report pain</span>
+        <button className="sheet__close" onClick={onClose} aria-label="Close">
+          ×
+        </button>
+      </div>
+      {!site ? (
+        <>
+          <h3 className="sheet__title">Where does it hurt?</h3>
+          <div className="pain__grid">
+            {PAIN_SITE_IDS.map((id) => (
+              <button key={id} onClick={() => setSite(id)}>
+                {PAIN_SITES[id].label}
+              </button>
+            ))}
+          </div>
+          {reported && (
+            <button className="pain__clear" onClick={onClear}>
+              No pain now
+            </button>
+          )}
+        </>
+      ) : (
+        <>
+          <h3 className="sheet__title">{PAIN_SITES[site].label}: how bad?</h3>
+          <div className="pain__grid pain__grid--3">
+            {PAIN_LEVELS.map(([label, value]) => (
+              <button key={label} onClick={() => onReport(site, value)}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="sheet__text sheet__text--dim">
+            In the suit, joint pain can be decompression sickness, so the medical officer is told.
+          </p>
+        </>
+      )}
     </motion.div>
   );
 }
@@ -184,6 +256,7 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
   const [scope, animateCase] = useAnimate();
   const [info, setInfo] = useState<VitalId | null>(null);
   const [keypad, setKeypad] = useState(false);
+  const [pain, setPain] = useState(false);
   const astronaut = CREW_BY_ID[astronautId];
   const snap = snapshot(state ?? undefined, astronautId, now);
   const hr = snap.readings.heartRate;
@@ -194,7 +267,8 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
   // Radiation advisory (NASA DONKI or simulated): spacewalk crew get a warning, everyone else a caution.
   const weather = useSpaceWeather();
   const advisory = radiationAdvisory(state, weather, now);
-  const radLevel: Level = astronaut.onEva ? 2 : 1;
+  const eva = isEva(state, astronautId);
+  const radLevel: Level = eva ? 2 : 1;
   const showRad = snap.connected && !!advisory && !alert && !state?.acks?.[astronautId]?.[`radiation-${radLevel}`];
 
   // Vibrate and shake when a new alert appears or escalates.
@@ -215,6 +289,8 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
     }
   }, [signalKey, signalLevel, reduce, scope, animateCase]);
 
+  const confirm = alert ? VITALS[alert.id].confirm : undefined;
+  const bannerNote = alert ? readingNote(alert, state, astronautId) : '';
   const fraction = (hr.value - 40) / (180 - 40);
   const askMood = snap.connected && moodDue(state ?? undefined, astronautId, now, MISSION_DAY_OFFSET_MS);
 
@@ -245,6 +321,9 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
             <button className="btn-round" onClick={() => setInfo(snap.top?.id ?? 'heartRate')} aria-label="Explain my readings">
               <InfoIcon />
             </button>
+            <button className="btn-round" onClick={() => setPain(true)} aria-label="Report joint pain">
+              <PainIcon />
+            </button>
             <button
               className={`btn-help${help ? ' is-active' : ''}`}
               onClick={() => (help ? store.cancelHelp(astronautId) : store.requestHelp(astronautId))}
@@ -266,19 +345,28 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
                 <div className="banner__text">
                   <strong>{LEVEL_NAMES[alert.level]}</strong>
                   <span>
-                    {VITALS[alert.id].label} {alert.value.toFixed(VITALS[alert.id].decimals)} {VITALS[alert.id].unit}
-                    {alert.pending ? ' (sensor)' : alert.confirmed ? ' (fingerstick)' : ''}
+                    {VITALS[alert.id].label} {readingValue(alert)} {VITALS[alert.id].unit}
+                    {alert.pending ? ' (sensor)' : bannerNote ? ` (${bannerNote})` : ''}
                   </span>
-                  {alert.pending && <em>Confirm with a fingerstick test</em>}
+                  {alert.pending && <em>{confirm?.kind === 'symptom' ? confirm.question : 'Confirm with a fingerstick test'}</em>}
                   {routingFor(alert.level).cmo && <em>Medical officer notified</em>}
                 </div>
                 <div className="banner__buttons">
-                  {alert.pending ? (
-                    <button onClick={() => setKeypad(true)}>Fingerstick</button>
+                  {alert.pending && confirm?.kind === 'symptom' ? (
+                    <>
+                      <button onClick={() => store.answerSymptom(astronautId, alert.id, true)}>Yes</button>
+                      <button onClick={() => store.answerSymptom(astronautId, alert.id, false)}>No</button>
+                    </>
                   ) : (
-                    <button onClick={() => setInfo(alert.id)}>What to do</button>
+                    <>
+                      {alert.pending ? (
+                        <button onClick={() => setKeypad(true)}>Fingerstick</button>
+                      ) : (
+                        <button onClick={() => setInfo(alert.id)}>What to do</button>
+                      )}
+                      <button onClick={() => store.acknowledge(astronautId, alert.id, alert.level)}>OK</button>
+                    </>
                   )}
-                  <button onClick={() => store.acknowledge(astronautId, alert.id, alert.level)}>OK</button>
                 </div>
               </motion.div>
             )}
@@ -297,7 +385,7 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
                 <div className="banner__text">
                   <strong>Radiation advisory</strong>
                   <span>Solar particle event</span>
-                  <em>{astronaut.onEva ? 'Return to the vehicle now' : 'Move to the most shielded area'}</em>
+                  <em>{eva ? 'Return to the vehicle now' : 'Move to the most shielded area'}</em>
                 </div>
                 <div className="banner__buttons">
                   <button onClick={() => store.acknowledgeAdvisory(astronautId, radLevel)}>OK</button>
@@ -325,7 +413,7 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
                 )}
                 <span className="critical__label">Critical</span>
                 <span className="critical__value">
-                  <ShortLabel text={VITALS[alert.id].short} /> {alert.value.toFixed(VITALS[alert.id].decimals)}
+                  <ShortLabel text={VITALS[alert.id].short} /> {readingValue(alert)}
                   <small>{VITALS[alert.id].unit}</small>
                 </span>
                 <span className="critical__note">Crew and flight surgeons notified</span>
@@ -353,7 +441,7 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
           </AnimatePresence>
 
           <AnimatePresence>
-            {askMood && !info && !keypad && !(alert && alert.level === 3) && (
+            {askMood && !info && !keypad && !pain && !(alert && alert.level === 3) && (
               <MoodPrompt key="mood" onPick={(value) => store.submitMood(astronautId, value)} />
             )}
           </AnimatePresence>
@@ -366,6 +454,24 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
                 onSubmit={(value) => {
                   store.submitGlucoseCheck(astronautId, value);
                   setKeypad(false);
+                }}
+              />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {pain && (
+              <PainSheet
+                key="pain"
+                reported={!!state?.reports?.[astronautId]?.jointPain}
+                onClose={() => setPain(false)}
+                onClear={() => {
+                  store.clearPain(astronautId);
+                  setPain(false);
+                }}
+                onReport={(site, value) => {
+                  store.reportPain(astronautId, site, value);
+                  setPain(false);
                 }}
               />
             )}

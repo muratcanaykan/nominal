@@ -64,7 +64,7 @@ export function WatchPage() {
   );
 }
 
-const VIEW_PARAMS: Record<string, TabletView> = { crew: 'crewStatus', medical: 'crewMedical' };
+const VIEW_PARAMS: Record<string, TabletView> = { medical: 'crewMedical' };
 
 export function TabletPage() {
   const { astronautId = '' } = useParams();

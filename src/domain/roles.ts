@@ -36,22 +36,20 @@ export function dutyStatus(s: Snapshot, state: RoomState | undefined, now: numbe
   return 'clear';
 }
 
-export type TabletView = 'self' | 'crewStatus' | 'crewMedical';
+export type TabletView = 'self' | 'crewMedical';
 
 export const TABLET_VIEW_LABELS: Record<TabletView, string> = {
   self: 'My health',
-  crewStatus: 'Crew status',
   crewMedical: 'Crew medical',
 };
 
-/** The views a crew member's tablet offers. */
+/** The views a crew member's tablet offers. Only the medical officer's tablet has a second view. */
 export function tabletViews(id: AstronautId): TabletView[] {
-  const a = CREW_BY_ID[id];
-  const views: TabletView[] = ['self'];
-  if (a.commander) views.push('crewStatus');
-  if (a.cmo) views.push('crewMedical');
-  return views;
+  return CREW_BY_ID[id].cmo ? ['self', 'crewMedical'] : ['self'];
 }
+
+/** The commander sees the crew duty status next to their own health, on the same screen. */
+export const seesCrewStatus = (id: AstronautId) => !!CREW_BY_ID[id].commander;
 
 /** Plain-language list of what a crew member can see, for the demo's role switcher. */
 export function canSee(id: AstronautId): string[] {

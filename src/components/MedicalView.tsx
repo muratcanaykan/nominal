@@ -3,12 +3,14 @@
 
 import { useState, type FormEvent } from 'react';
 import { CREW, CREW_BY_ID, OSDR_GLUCOSE, PROFILES, type AstronautId } from '../domain/crew';
+import { locationLabel } from '../domain/locations';
 import type { RoomState } from '../domain/room';
 import { crewSummary, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { formatAgo, formatDelay, levelClass } from './bits';
-import { Timeline, timeline, VitalTiles } from './health';
+import { BodyMap } from './BodyMap';
+import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 
 export const DEMO_PIN = '2468';
 const UNLOCK_KEY = 'nominal:cmo';
@@ -71,14 +73,17 @@ function CrewCard({ s, state, now }: { s: Snapshot; state: RoomState | undefined
         <div>
           <h3>{a.name}</h3>
           <span>
-            {a.role} · {a.location}
+            {a.role} · {locationLabel(state, a.id)}
           </span>
         </div>
         <span className={`cmo-badge ${levelClass(s.status)}`}>
           {s.status === 'nodata' ? `No data · ${formatAgo(now - s.readingsAt)}` : LEVEL_NAMES[s.worst]}
         </span>
       </header>
-      <VitalTiles s={s} state={state} now={now} />
+      <div className="cmo-card__body">
+        <BodyMap s={s} state={state} compact />
+        <VitalTiles s={s} state={state} now={now} />
+      </div>
       <p className="cmo-ref">
         Glucose baseline from real data: anonymised Inspiration4 crew member {a.osdrSubject}, pre-flight fasting mean{' '}
         {Math.round(subject.preflightMean)} mg/dL, {subject.dayAfterLanding} mg/dL the day after landing (NASA OSDR{' '}
@@ -149,9 +154,10 @@ export function MedicalOverview({ state, now }: { state: RoomState | undefined; 
     for (const v of VITAL_IDS) {
       const r = s.readings[v];
       if (s.connected && routingFor(r.level).cmo) {
+        const note = readingNote(r, state, a.id);
         out.push({
           id: a.id,
-          text: `${VITALS[v].label} ${v === 'bloodPressure' ? `${r.value}/${r.secondary}` : r.value.toFixed(VITALS[v].decimals)} ${VITALS[v].unit} · ${LEVEL_NAMES[r.level]}`,
+          text: `${VITALS[v].label} ${readingValue(r)} ${VITALS[v].unit}${note ? ` (${note})` : ''} · ${LEVEL_NAMES[r.level]}`,
           level: levelClass(r.level),
         });
       }

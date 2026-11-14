@@ -4,7 +4,7 @@ import { applyPatch, newRoomState } from './room';
 import { crewSummary, moodDue, snapshot, valueAt } from './sim';
 import { levelFor, routingFor } from './vitals';
 import { radiationAdvisory } from '../data/spaceWeather';
-import { dutyStatus, tabletViews } from './roles';
+import { dutyStatus, seesCrewStatus, tabletViews } from './roles';
 
 describe('levelFor', () => {
   it('maps values to nested threshold bands', () => {
@@ -164,10 +164,71 @@ describe('roles', () => {
     expect(duty('01')).toBe('help');
   });
 
-  it('opens crew views only on the commander and medical officer tablets', () => {
-    expect(tabletViews('01')).toEqual(['self', 'crewStatus']);
+  it('shows crew status to the commander and crew medical only to the medical officer', () => {
+    expect(tabletViews('01')).toEqual(['self']);
+    expect(seesCrewStatus('01')).toBe(true);
+    expect(seesCrewStatus('03')).toBe(false);
     expect(tabletViews('02')).toEqual(['self']);
     expect(tabletViews('03')).toEqual(['self', 'crewMedical']);
     expect(tabletViews('04')).toEqual(['self']);
+  });
+});
+
+describe('suit sensors', () => {
+  const setup = () => {
+    const clock = { now: 2_000_000 };
+    const store = new RoomStore(new MemoryBackend(newRoomState(clock.now), () => clock.now));
+    return { clock, store };
+  };
+
+  it('only report while the crew member is suited', async () => {
+    const { clock, store } = setup();
+    expect(snapshot(store.current!, '01', clock.now).readings.fingerTempL.inactive).toBe(true);
+    expect(snapshot(store.current!, '02', clock.now).readings.fingerTempL.inactive).toBeUndefined();
+    await store.setLocation('01', 'airlock');
+    expect(snapshot(store.current!, '01', clock.now).readings.fingerTempL.inactive).toBeUndefined();
+  });
+
+  it('a cold hand waits for the numbness answer before telling the medical officer', async () => {
+    const { clock, store } = setup();
+    await store.runScenario('02', 'coldHand');
+    clock.now += 10_000;
+    let r = snapshot(store.current!, '02', clock.now).readings.fingerTempL;
+    expect(r).toMatchObject({ level: 1, pending: true, sensorLevel: 2 });
+    await store.answerSymptom('02', 'fingerTempL', true);
+    clock.now += 1_000;
+    r = snapshot(store.current!, '02', clock.now).readings.fingerTempL;
+    expect(r).toMatchObject({ level: 2, confirmed: true });
+    await store.answerSymptom('02', 'fingerTempL', false);
+    clock.now += 1_000;
+    r = snapshot(store.current!, '02', clock.now).readings.fingerTempL;
+    expect(r).toMatchObject({ level: 1, denied: true });
+  });
+
+  it('water in the helmet is critical and reaches the cabin', async () => {
+    const { clock, store } = setup();
+    await store.runScenario('02', 'helmetWater');
+    clock.now += 10_000;
+    const summary = crewSummary(store.current!, clock.now);
+    expect(summary.snapshots['02'].top?.id).toBe('helmetWater');
+    expect(summary.alerts[0]).toMatchObject({ astronautId: '02', kind: 'critical', vital: 'helmetWater' });
+  });
+
+  it('joint pain while suited is raised to warning (possible decompression sickness)', async () => {
+    const { clock, store } = setup();
+    await store.runScenario('01', 'kneePain');
+    await store.runScenario('02', 'kneePain');
+    clock.now += 1_000;
+    expect(snapshot(store.current!, '01', clock.now).readings.jointPain.level).toBe(1);
+    expect(snapshot(store.current!, '02', clock.now).readings.jointPain.level).toBe(2);
+  });
+
+  it('moving inside the vehicle switches suit alerts off', async () => {
+    const { clock, store } = setup();
+    await store.runScenario('02', 'helmetCO2');
+    clock.now += 10_000;
+    expect(snapshot(store.current!, '02', clock.now).readings.helmetCO2.level).toBe(2);
+    await store.setLocation('02', 'habitat');
+    expect(snapshot(store.current!, '02', clock.now).readings.helmetCO2).toMatchObject({ level: 0, inactive: true });
   });
 });

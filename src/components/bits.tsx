@@ -37,6 +37,17 @@ export function InfoIcon() {
   );
 }
 
+/** A bent joint with a pain mark, for reporting joint pain. */
+export function PainIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
+      <path d="M5 4l5 9-3 7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="13" r="2.2" fill="currentColor" />
+      <path d="M15 9l3-2M16 13h4M15 17l3 2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+    </svg>
+  );
+}
+
 export function SignalOffIcon() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="icon">
@@ -46,12 +57,15 @@ export function SignalOffIcon() {
   );
 }
 
-/** Short indicator label; renders the "2" of SpO2 as a subscript so it works in every font. */
+/** Short indicator label; renders the "2" of SpO2, CO2 and H2O as a subscript so it works in every font. */
 export function ShortLabel({ text }: { text: string }) {
-  if (text === 'SpO2') {
+  const m = /^(SpO|CO|H)2(O?)$/.exec(text);
+  if (m) {
     return (
       <>
-        SpO<sub className="sub">2</sub>
+        {m[1]}
+        <sub className="sub">2</sub>
+        {m[2]}
       </>
     );
   }

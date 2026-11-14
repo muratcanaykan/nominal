@@ -1,13 +1,34 @@
 // Detailed health building blocks shared by the personal tablet and the medical officer's crew view.
 
+import { PAIN_SITES } from '../domain/body';
 import { CREW_BY_ID, type AstronautId } from '../domain/crew';
 import type { RoomState } from '../domain/room';
 import { SCENARIOS } from '../domain/scenarios';
-import { snapshot, type Snapshot } from '../domain/sim';
+import { snapshot, type Reading, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, VITAL_IDS, VITALS, type VitalId } from '../domain/vitals';
 import { formatAgo, levelClass, ShortLabel } from './bits';
 
 const TREND_MS = 5 * 60 * 1000;
+
+export function readingValue(r: Reading): string {
+  return r.id === 'bloodPressure' ? `${r.value}/${r.secondary}` : r.value.toFixed(VITALS[r.id].decimals);
+}
+
+/** Short note on where a value comes from: a sensor waiting for confirmation, a confirmed symptom, a reported joint. */
+export function readingNote(r: Reading, state: RoomState | null | undefined, id: AstronautId): string {
+  const confirm = VITALS[r.id].confirm;
+  if (r.id === 'jointPain') {
+    const site = state?.reports?.[id]?.jointPain?.site;
+    return site && r.value > 0 ? PAIN_SITES[site].label.toLowerCase() : '';
+  }
+  if (r.pending) return confirm?.kind === 'fingerstick' ? 'sensor · awaiting fingerstick' : 'sensor · awaiting answer';
+  if (r.confirmed) return confirm?.kind === 'symptom' ? confirm.confirmed : 'fingerstick';
+  if (r.denied) return 'no symptoms reported';
+  return '';
+}
+
+/** Readings worth a tile: suit sensors only while suited, joint pain only once reported. */
+export const showsTile = (r: Reading) => !r.inactive && !(r.id === 'jointPain' && r.value === 0);
 const TREND_VITALS: VitalId[] = ['heartRate', 'spo2', 'bloodPressure', 'bodyTemp', 'glucose'];
 
 export function Sparkline({ state, id, vital, now }: { state: RoomState | undefined; id: AstronautId; vital: VitalId; now: number }) {
@@ -36,19 +57,19 @@ export function Sparkline({ state, id, vital, now }: { state: RoomState | undefi
 export function VitalTiles({ s, state, now }: { s: Snapshot; state: RoomState | undefined; now: number }) {
   return (
     <div className="cmo-vitals">
-      {VITAL_IDS.map((v) => {
+      {VITAL_IDS.filter((v) => showsTile(s.readings[v])).map((v) => {
         const r = s.readings[v];
         const def = VITALS[v];
-        const value = v === 'bloodPressure' ? `${r.value}/${r.secondary}` : r.value.toFixed(def.decimals);
+        const note = readingNote(r, state, s.astronautId);
         return (
-          <div key={v} className={`cmo-vital ${levelClass(s.connected ? r.level : 'nodata')}`}>
+          <div key={v} className={`cmo-vital ${levelClass(s.connected ? r.level : 'nodata')}${def.suit ? ' cmo-vital--suit' : ''}`}>
             <span className="cmo-vital__label">
               <ShortLabel text={def.short} />
-              {r.pending && <em> sensor · awaiting fingerstick</em>}
-              {r.confirmed && <em> fingerstick</em>}
+              {def.suit && <span className="cmo-vital__tag">suit</span>}
+              {note && <em> {note}</em>}
             </span>
             <span className="cmo-vital__value">
-              {value}
+              {readingValue(r)}
               <small>{def.unit}</small>
             </span>
             {TREND_VITALS.includes(v) && <Sparkline state={state} id={s.astronautId} vital={v} now={now} />}
@@ -91,6 +112,14 @@ export function timeline(state: RoomState | undefined, id: AstronautId): Timelin
   if (mood) items.push({ at: mood.at, text: `Mood check-in: ${mood.value}/5`, level: mood.value <= 2 ? 'lvl-1' : undefined });
   const g = state.glucoseChecks?.[id];
   if (g) items.push({ at: g.at, text: `Fingerstick glucose: ${g.value} mg/dL` });
+  for (const [vital, check] of Object.entries(state.symptomChecks?.[id] ?? {})) {
+    if (!check) continue;
+    const def = VITALS[vital as VitalId];
+    const q = def.confirm?.kind === 'symptom' ? def.confirm.question : def.label;
+    items.push({ at: check.at, text: `${q} ${check.yes ? 'Yes' : 'No'}`, level: check.yes ? 'lvl-2' : undefined });
+  }
+  const pain = state.reports?.[id]?.jointPain;
+  if (pain) items.push({ at: pain.at, text: `Joint pain reported: ${PAIN_SITES[pain.site].label.toLowerCase()}, ${pain.value}/10`, level: 'lvl-1' });
   return items.sort((a, b) => b.at - a.at);
 }
 

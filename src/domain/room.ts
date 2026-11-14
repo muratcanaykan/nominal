@@ -1,7 +1,9 @@
 // Shared state of one demo session ("room"). Stored in Firebase under rooms/{ROOMID};
 // only user actions and scenario events live here. Indicator values are computed from time (see sim.ts).
 
+import type { PainSite } from './body';
 import type { AstronautId, ProfileId } from './crew';
+import type { LocationId } from './locations';
 import type { Level, VitalId } from './vitals';
 
 export interface Override {
@@ -25,6 +27,12 @@ export interface RoomState {
   moodPrompts?: Partial<Record<AstronautId, { at: number }>>;
   /** Fingerstick glucose tests entered on the watch. */
   glucoseChecks?: Partial<Record<AstronautId, { value: number; at: number }>>;
+  /** Crew members moved away from their starting location. */
+  locations?: Partial<Record<AstronautId, LocationId>>;
+  /** Answers to a sensor's symptom question on the watch (e.g. "Do your fingers feel numb?"). */
+  symptomChecks?: Partial<Record<AstronautId, Partial<Record<VitalId, { yes: boolean; at: number }>>>>;
+  /** Symptoms reported from the watch. */
+  reports?: Partial<Record<AstronautId, { jointPain?: { value: number; site: PainSite; at: number } }>>;
   /** Demo trigger for a solar particle event (real events come from NASA DONKI). */
   spaceWeather?: { sepAt?: number };
 }

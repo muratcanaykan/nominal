@@ -26,6 +26,11 @@ that helps astronauts assess their own health and guides them on what to do.
   trends and alert history.
 - **Cabin screen** — a shared display that shows device connectivity and only the alerts that need crew action.
   Routine health values stay private.
+- **Suit sensors and body map** — while a crew member wears the spacesuit (airlock or spacewalk), sensors in the
+  helmet, gloves and shoulders report helmet CO₂, water in the helmet, fingertip temperature and suit contact pressure.
+  A body map on the tablet and in the medical officer's view colours the region that needs attention. A cold hand
+  asks "Do your fingers feel numb?" on the watch before the medical officer is told. Joint pain can be reported from
+  the watch; in the suit it is treated as possible decompression sickness.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
 - **Live demo** — pick a crew member to see the mission through their devices: the cabin screen, the crew's watches and

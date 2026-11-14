@@ -3,8 +3,9 @@
 // All values are SIMULATED for the demo.
 
 import { CREW, CREW_BY_ID, type AstronautId } from './crew';
+import { isEva, isSuited } from './locations';
 import { ackKey, type Override, type RoomState } from './room';
-import { levelFor, VITAL_IDS, VITAL_PRIORITY, type Level, type Status, type VitalId } from './vitals';
+import { levelFor, VITAL_IDS, VITAL_PRIORITY, VITALS, type Level, type Status, type VitalId } from './vitals';
 
 // ---- seeded noise -------------------------------------------------------
 
@@ -47,7 +48,12 @@ export function baseValue(id: AstronautId, vital: VitalId, t: number, state?: Ro
   const seed = `${id}:${vital}`;
   switch (vital) {
     case 'heartRate':
-      return b.heartRate + smooth(seed, t, 5000) * 3 + smooth(seed + ':slow', t, 40000) * 5 + (a.onEva ? smooth(seed + ':eva', t, 15000) * 5 : 0);
+      return (
+        b.heartRate +
+        smooth(seed, t, 5000) * 3 +
+        smooth(seed + ':slow', t, 40000) * 5 +
+        (isEva(state, id) ? smooth(seed + ':eva', t, 15000) * 5 : 0)
+      );
     case 'spo2':
       return Math.min(100, b.spo2 + smooth(seed, t, 20000) * 1);
     case 'bloodPressure':
@@ -65,6 +71,43 @@ export function baseValue(id: AstronautId, vital: VitalId, t: number, state?: Ro
     }
     case 'mood':
       return state?.moods?.[id]?.value ?? 4;
+    case 'fingerTempL':
+    case 'fingerTempR':
+      // Glove heaters keep fingertips warm; the value drifts slowly.
+      return SUIT_BASE[vital] + smooth(seed, t, 60000) * 1.2;
+    case 'helmetCO2':
+      return SUIT_BASE.helmetCO2 + smooth(seed, t, 20000) * 0.5;
+    case 'helmetWater':
+      return 0;
+    case 'shoulderL':
+    case 'shoulderR':
+      return SUIT_BASE[vital] + smooth(seed, t, 8000) * 0.8;
+    case 'jointPain': {
+      const pain = state?.reports?.[id]?.jointPain;
+      return pain && pain.at <= t ? pain.value : 0;
+    }
+  }
+}
+
+/** Nominal suit sensor values (prototype assumptions). */
+const SUIT_BASE = { fingerTempL: 30.5, fingerTempR: 29.8, helmetCO2: 2.2, helmetWater: 0, shoulderL: 3.2, shoulderR: 3.6, jointPain: 0 };
+
+/** The value an indicator sits at before any scenario, used to keep natural variation on top of a scenario target. */
+function centreValue(id: AstronautId, vital: VitalId): number {
+  const b = CREW_BY_ID[id].baseline;
+  switch (vital) {
+    case 'bloodPressure':
+      return b.systolic;
+    case 'heartRate':
+    case 'spo2':
+    case 'bodyTemp':
+    case 'glucose':
+    case 'sleep':
+      return b[vital];
+    case 'mood':
+      return 4;
+    default:
+      return SUIT_BASE[vital];
   }
 }
 
@@ -85,10 +128,8 @@ function applyOverride(sim: number, base: number, o: Override, t: number): numbe
 export function valueAt(id: AstronautId, vital: VitalId, t: number, state?: RoomState): number {
   const sim = baseValue(id, vital, t, state);
   const o = state?.overrides?.[id]?.[vital];
-  if (!o || vital === 'mood') return sim;
-  const b = CREW_BY_ID[id].baseline;
-  const base = vital === 'bloodPressure' ? b.systolic : (b as unknown as Record<string, number>)[vital];
-  return applyOverride(sim, base, o, t);
+  if (!o || vital === 'mood' || vital === 'jointPain') return sim;
+  return Math.max(0, applyOverride(sim, centreValue(id, vital), o, t));
 }
 
 // ---- snapshots ----------------------------------------------------------
@@ -104,24 +145,46 @@ export interface Reading {
   pending?: boolean;
   /** Glucose: the level the sensor alone would give. */
   sensorLevel?: Level;
-  /** Glucose: the value comes from a fingerstick test. */
+  /** Glucose: the value comes from a fingerstick test. Symptom sensors: the crew member confirmed the symptom. */
   confirmed?: boolean;
+  /** Symptom sensors: the crew member answered that they do not feel the symptom. */
+  denied?: boolean;
+  /** Suit sensor while the crew member is not wearing the suit. */
+  inactive?: boolean;
 }
 
-const GLUCOSE_CHECK_VALID_MS = 30 * 60 * 1000;
+const CHECK_VALID_MS = 30 * 60 * 1000;
 
 /**
- * Glucose escalation: an out-of-range sensor value stays at watch level (1) until a fingerstick test confirms it.
- * Level 3 never waits.
+ * Sensor confirmation: an out-of-range value stays at watch level (1) until the crew member confirms it on the watch
+ * (a fingerstick test for glucose, a yes/no question for symptom sensors). Level 3 never waits.
  */
-function applyGlucoseCheck(r: Reading, state: RoomState | undefined, id: AstronautId, t: number) {
-  const check = state?.glucoseChecks?.[id];
-  const sensorChangedAt = state?.overrides?.[id]?.glucose?.startAt ?? 0;
-  if (check && check.at >= sensorChangedAt && t - check.at < GLUCOSE_CHECK_VALID_MS) {
-    r.value = check.value;
-    r.level = levelFor('glucose', check.value);
-    r.confirmed = true;
-  } else if (r.level === 1 || r.level === 2) {
+function applyConfirmation(r: Reading, state: RoomState | undefined, id: AstronautId, t: number) {
+  const confirm = VITALS[r.id].confirm;
+  if (!confirm || r.level === 0) return;
+  const sensorChangedAt = state?.overrides?.[id]?.[r.id]?.startAt ?? 0;
+  if (confirm.kind === 'fingerstick') {
+    const check = state?.glucoseChecks?.[id];
+    if (check && check.at >= sensorChangedAt && check.at <= t && t - check.at < CHECK_VALID_MS) {
+      r.value = check.value;
+      r.level = levelFor(r.id, check.value);
+      r.confirmed = true;
+      return;
+    }
+  } else {
+    const check = state?.symptomChecks?.[id]?.[r.id];
+    if (check && check.at >= sensorChangedAt && check.at <= t) {
+      if (check.yes) {
+        r.level = Math.max(r.level, 2) as Level;
+        r.confirmed = true;
+      } else if (r.level < 3) {
+        r.level = 1;
+        r.denied = true;
+      }
+      return;
+    }
+  }
+  if (r.level === 1 || r.level === 2) {
     r.sensorLevel = r.level;
     r.level = 1;
     r.pending = true;
@@ -149,14 +212,20 @@ export function snapshot(state: RoomState | undefined, id: AstronautId, now: num
   const connected = !disconnect || disconnect.at > now;
   const t = connected ? now : disconnect!.at;
 
+  const suited = isSuited(state, id);
   const readings = {} as Record<VitalId, Reading>;
   for (const vital of VITAL_IDS) {
+    if (VITALS[vital].suit && !suited) {
+      readings[vital] = { id: vital, value: 0, level: 0, inactive: true };
+      continue;
+    }
     const raw = valueAt(id, vital, t, state);
-    const decimals = vital === 'bodyTemp' || vital === 'sleep' ? 1 : 0;
-    const value = round(raw, decimals);
+    const value = round(raw, VITALS[vital].decimals);
     const reading: Reading = { id: vital, value, level: levelFor(vital, value) };
     if (vital === 'bloodPressure') reading.secondary = Math.round(diastolicAt(id, t, raw));
-    if (vital === 'glucose') applyGlucoseCheck(reading, state, id, t);
+    // Joint pain while suited can be decompression sickness: the medical officer is told.
+    if (vital === 'jointPain' && suited && value > 0) reading.level = 2;
+    applyConfirmation(reading, state, id, t);
     readings[vital] = reading;
   }
 

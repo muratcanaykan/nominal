@@ -9,6 +9,7 @@ import { Tablet } from '../components/Tablet';
 import { WatchFace } from '../components/WatchFace';
 import { DEMO_PIN } from '../components/MedicalView';
 import { CREW, CREW_BY_ID, PROFILES, type AstronautId, type ProfileId } from '../domain/crew';
+import { isSuited, LOCATION_IDS, LOCATIONS, locationLabel, locationOf } from '../domain/locations';
 import { canSee } from '../domain/roles';
 import { activeScenario, type ScenarioId } from '../domain/scenarios';
 import { useRoomId } from '../lib/RoomRoute';
@@ -23,6 +24,13 @@ const SCENARIO_BUTTONS: { id: ScenarioId; label: string; level: string }[] = [
   { id: 'fever', label: 'Fever', level: 'lvl-2' },
   { id: 'critical', label: 'Hypoxia', level: 'lvl-3' },
   { id: 'nodata', label: 'Sensor offline', level: 'lvl-nodata' },
+];
+
+const SUIT_BUTTONS: { id: ScenarioId; label: string; level: string }[] = [
+  { id: 'coldHand', label: 'Cold left hand', level: 'lvl-1' },
+  { id: 'shoulderPressure', label: 'Shoulder pressure point', level: 'lvl-1' },
+  { id: 'helmetCO2', label: 'Helmet CO₂ rising', level: 'lvl-2' },
+  { id: 'helmetWater', label: 'Water in helmet', level: 'lvl-3' },
 ];
 
 type DrawerId = 'scenarios' | 'devices';
@@ -56,6 +64,19 @@ function ScenarioControls({ initialTarget }: { initialTarget: AstronautId }) {
   const a = CREW_BY_ID[target];
   const active = activeScenario(state, target);
   const help = state?.help?.[target];
+  const where = locationOf(state, target);
+  const suited = isSuited(state, target);
+  const chip = (b: { id: ScenarioId; label: string; level: string }, disabled = false) => (
+    <button
+      key={b.id}
+      className={`chip-btn ${b.level}${active === b.id ? ' is-active' : ''}`}
+      aria-pressed={active === b.id}
+      disabled={disabled}
+      onClick={() => store.runScenario(target, b.id)}
+    >
+      {b.label}
+    </button>
+  );
   return (
     <section className="drawer__section">
       <h3 className="panel__title">Crew member</h3>
@@ -67,23 +88,24 @@ function ScenarioControls({ initialTarget }: { initialTarget: AstronautId }) {
         ))}
       </div>
       <p className="drawer__hint">
-        {a.name} · {a.role} · {a.location}
+        {a.name} · {a.role} · {locationLabel(state, target)}
       </p>
-      <h3 className="panel__title">Readings</h3>
-      <div className="chip-row">
-        {SCENARIO_BUTTONS.map((b) => (
-          <button
-            key={b.id}
-            className={`chip-btn ${b.level}${active === b.id ? ' is-active' : ''}`}
-            aria-pressed={active === b.id}
-            onClick={() => store.runScenario(target, b.id)}
-          >
-            {b.label}
+      <h3 className="panel__title">Location</h3>
+      <div className="segmented" role="radiogroup" aria-label={`Location of ${a.name}`}>
+        {LOCATION_IDS.map((l) => (
+          <button key={l} role="radio" aria-checked={where === l} className={where === l ? 'is-active' : ''} onClick={() => store.setLocation(target, l)}>
+            {LOCATIONS[l].short}
           </button>
         ))}
       </div>
+      <h3 className="panel__title">Readings</h3>
+      <div className="chip-row">{SCENARIO_BUTTONS.map((b) => chip(b))}</div>
+      <h3 className="panel__title">Suit sensors</h3>
+      {!suited && <p className="drawer__hint">Suit sensors report only in the suit. Move {a.name} to the airlock or outside first.</p>}
+      <div className="chip-row">{SUIT_BUTTONS.map((b) => chip(b, !suited))}</div>
       <h3 className="panel__title">From the watch</h3>
       <div className="chip-row">
+        {chip({ id: 'kneePain', label: 'Knee pain report', level: suited ? 'lvl-2' : 'lvl-1' })}
         <button
           className={`chip-btn lvl-3${help ? ' is-active' : ''}`}
           aria-pressed={!!help}
@@ -187,6 +209,7 @@ function DeviceLinks({ roomId }: { roomId: string }) {
 }
 
 function RolePicker({ persona, onPick }: { persona: AstronautId; onPick: (id: AstronautId) => void }) {
+  const { state } = useRoom();
   return (
     <section className="roles" aria-labelledby="roles-title">
       <div className="roles__intro">
@@ -201,13 +224,13 @@ function RolePicker({ persona, onPick }: { persona: AstronautId; onPick: (id: As
             key={a.id}
             role="radio"
             aria-checked={persona === a.id}
-            aria-label={`${a.name}, ${a.cmo ? 'Medical officer' : a.role}, ${a.location}`}
+            aria-label={`${a.name}, ${a.cmo ? 'Medical officer' : a.role}, ${locationLabel(state, a.id)}`}
             className={`role-card${persona === a.id ? ' is-active' : ''}`}
             onClick={() => onPick(a.id)}
           >
             <strong>{a.name}</strong>
             <span>{a.cmo ? 'Medical officer' : a.role}</span>
-            <small>{a.location}</small>
+            <small>{locationLabel(state, a.id)}</small>
           </button>
         ))}
       </div>
@@ -326,7 +349,7 @@ export function Hub() {
               {you.cmo
                 ? 'Personal tablet · the crew medical view opens with the demo PIN'
                 : you.commander
-                  ? 'Personal tablet · adds the crew duty status for the commander'
+                  ? 'Personal tablet · crew duty status and own health on one screen'
                   : 'Personal tablet · only this crew member sees it'}
             </span>
           </div>

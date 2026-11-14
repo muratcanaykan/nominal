@@ -942,3 +942,33 @@ button:focus-visible {
     animation: none;
   }
 }
+
+/* ---------------- Joint pain report (watch) ---------------- */
+
+.pain__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2cqw;
+}
+
+.pain__grid--3 {
+  grid-template-columns: 1fr;
+}
+
+.pain__grid button,
+.pain__clear {
+  min-height: 10cqw;
+  padding: 1.5cqw 2cqw;
+  font: inherit;
+  font-size: 3.8cqw;
+  font-weight: 600;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.pain__clear {
+  border-color: var(--l0);
+  color: var(--l0);
+}

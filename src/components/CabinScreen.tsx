@@ -5,6 +5,7 @@ import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, PROFILES, type AstronautId } f
 import { crewSummary, missionClock, type CrewAlert } from '../domain/sim';
 import type { VitalId } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather, type Advisory } from '../data/spaceWeather';
+import { isEva, locationLabel } from '../domain/locations';
 import { useRoom, useStore } from '../lib/useRoom';
 import { formatAgo, formatDelay } from './bits';
 
@@ -16,6 +17,13 @@ const RESPONSE_STEP: Record<VitalId | 'help', string> = {
   glucose: 'Bring fast-acting carbohydrate',
   sleep: 'Check on the crew member',
   mood: 'Check on the crew member',
+  fingerTempL: 'Prepare the airlock and the medical kit',
+  fingerTempR: 'Prepare the airlock and the medical kit',
+  helmetCO2: 'Prepare the airlock for an early return',
+  helmetWater: 'Prepare the airlock for an emergency return',
+  shoulderL: 'Check on the crew member',
+  shoulderR: 'Check on the crew member',
+  jointPain: 'Check on the crew member',
   help: 'Go to the crew member now',
 };
 
@@ -28,7 +36,7 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
   const since = alert.since ?? now;
   const remaining = since + delay - now;
   const steps = [RESPONSE_STEP[alert.kind === 'help' ? 'help' : alert.vital ?? 'help']];
-  if (a.onEva) steps.push('Prepare the airlock for early return');
+  if (isEva(state, a.id) && !steps[0].includes('airlock')) steps.push('Prepare the airlock for early return');
 
   return (
     <motion.article
@@ -47,7 +55,7 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
       <dl className="event__facts">
         <div>
           <dt>Location</dt>
-          <dd>{a.location}</dd>
+          <dd>{locationLabel(state, a.id)}</dd>
         </div>
         <div>
           <dt>Response</dt>
@@ -82,7 +90,8 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
 }
 
 function AdvisoryCard({ advisory, now }: { advisory: Advisory; now: number }) {
-  const eva = CREW.filter((c) => c.onEva);
+  const { state } = useRoom();
+  const eva = CREW.filter((c) => isEva(state, c.id));
   return (
     <motion.article
       layout
@@ -174,7 +183,7 @@ export function CabinScreen({ now, viewer = '04' }: { now: number; viewer?: Astr
               <span className="crew__dot" aria-hidden="true" />
               <span className="crew__name">{a.name}</span>
               <span className="crew__role">{a.role}</span>
-              <span className="crew__loc">{a.location}</span>
+              <span className="crew__loc">{locationLabel(state, a.id)}</span>
               <span className="crew__dev">
                 {s.connected ? 'Connected' : `No data · ${formatAgo(now - s.readingsAt)}`}
               </span>

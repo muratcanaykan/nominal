@@ -2,6 +2,7 @@
 // Glucose baselines come from real pre-flight measurements of the anonymised Inspiration4 crew (NASA OSDR OSD-575).
 
 import osdr from '../data/osdr-inspiration4.json';
+import type { LocationId } from './locations';
 
 export type OsdrSubject = keyof typeof osdr.subjects;
 
@@ -20,12 +21,12 @@ export interface Astronaut {
   name: string;
   callsign: string;
   role: string;
-  location: string;
+  /** Where the crew member is when the demo starts (the demo can move them; see locations.ts). */
+  home: LocationId;
   /** Crew Medical Officer — receives level 2+ alerts and sees every crew member's details. */
   cmo?: boolean;
   /** Commander — sees each crew member's duty status, never health values. */
   commander?: boolean;
-  onEva?: boolean;
   /** Anonymised Inspiration4 crew member whose real measurements anchor this astronaut's baseline. */
   osdrSubject: OsdrSubject;
   baseline: {
@@ -45,7 +46,7 @@ export const CREW: Astronaut[] = [
     name: 'Mara Kaya',
     callsign: 'KAYA',
     role: 'Commander',
-    location: 'Habitat module',
+    home: 'habitat',
     commander: true,
     osdrSubject: 'C002',
     baseline: { heartRate: 66, spo2: 98, systolic: 116, diastolic: 76, bodyTemp: 36.8, glucose: glucoseBaseline('C002'), sleep: 7.4 },
@@ -55,8 +56,7 @@ export const CREW: Astronaut[] = [
     name: 'Daniel Okafor',
     callsign: 'OKAFOR',
     role: 'Mission Specialist',
-    location: 'Spacewalk · Outside',
-    onEva: true,
+    home: 'eva',
     osdrSubject: 'C001',
     baseline: { heartRate: 84, spo2: 97, systolic: 122, diastolic: 80, bodyTemp: 37.0, glucose: glucoseBaseline('C001'), sleep: 7.6 },
   },
@@ -65,7 +65,7 @@ export const CREW: Astronaut[] = [
     name: 'Elin Lindqvist',
     callsign: 'LINDQVIST',
     role: 'Pilot · Crew Medical Officer',
-    location: 'Lab module',
+    home: 'lab',
     cmo: true,
     osdrSubject: 'C003',
     baseline: { heartRate: 62, spo2: 98, systolic: 112, diastolic: 72, bodyTemp: 36.7, glucose: glucoseBaseline('C003'), sleep: 7.8 },
@@ -75,7 +75,7 @@ export const CREW: Astronaut[] = [
     name: 'Kenji Arai',
     callsign: 'ARAI',
     role: 'Mission Specialist',
-    location: 'Airlock',
+    home: 'airlock',
     osdrSubject: 'C004',
     baseline: { heartRate: 72, spo2: 98, systolic: 118, diastolic: 78, bodyTemp: 36.9, glucose: glucoseBaseline('C004'), sleep: 7.5 },
   },
