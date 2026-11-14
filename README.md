@@ -43,6 +43,10 @@ that helps astronauts assess their own health and guides them on what to do.
 - **Early warning** — when a reading drifts steadily away from the crew member's own baseline toward the next alert
   level, the watch, the tablet and the medical officer see how soon it will get there (for example "Blood oxygen
   falling · Warning in about 1 min"), so the crew can act before the alert. Normal sensor noise does not trigger it.
+- **Radiation dose** — every crew member's tablet shows a simulated personal dosimeter: the dose rate now, what
+  raises it (a spacewalk has less shielding; a solar particle event from NASA DONKI or the demo raises it sharply) and
+  the dose received this mission against the career limit. The medical officer sees one line per crew member. Base
+  rates come from published measurements; the spacewalk and solar event factors are prototype assumptions.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
 - **Live demo** — pick a crew member (the profile button at the bottom left) to see the mission through their devices: the cabin screen, the crew's watches and
@@ -53,8 +57,6 @@ that helps astronauts assess their own health and guides them on what to do.
 - **Suit voice link** — the watch microphone inside the suit carries the astronaut's voice to the cabin screen as
   live speech and text. Saying "help" or "mayday" starts a help call hands-free, which matters in pressurised gloves
   that make touching a watch hard.
-- **Radiation dose** — a personal dosimeter per crew member, adding up dose during spacewalks and solar particle events
-  against mission limits.
 - **Messages to Earth** — reports to flight surgeons whose replies arrive after the real round-trip delay (up to 48 minutes
   from Mars), to show why the crew must act on its own.
 - **Real devices and network** — the watches, suit sensors and tablets on the vehicle's own network instead of the web
@@ -127,6 +129,20 @@ Thresholds are prototype values and are not clinically validated. Each indicator
 - Law J. et al., carbon dioxide levels and reported headaches on the International Space Station, Journal of
   Occupational and Environmental Medicine, 2014.
 - NASA mishap investigation report on water entering a spacesuit helmet during a 2013 spacewalk.
+
+### Radiation dose
+
+Base dose rates and the limit used in [`src/domain/radiation.ts`](src/domain/radiation.ts); the spacewalk and solar
+particle event factors are prototype assumptions:
+
+- Low Earth orbit: about 0.5 mSv per day, within the 0.3–0.8 mSv per day typically received by space station crews
+  (NASA Human Research Program, Risks of Human Spaceflight: space radiation).
+- Zeitlin C. et al., "Measurements of Energetic Particle Radiation in Transit to Mars on the Mars Science Laboratory",
+  Science 340(6136), 2013 — 1.84 mSv per day in deep space (used for lunar orbit).
+- Hassler D.M. et al., "Mars' Surface Radiation Environment Measured with the Mars Science Laboratory's Curiosity
+  Rover", Science 343(6169), 2014 — 0.64 mSv per day on the surface of Mars.
+- NASA-STD-3001 Volume 1 — NASA Space Flight Human-System Standard, crew health (600 mSv career effective dose
+  limit).
 
 ### Software, libraries and fonts
 

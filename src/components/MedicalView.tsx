@@ -12,6 +12,7 @@ import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../
 import { formatAgo, formatDelay, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
+import { RadiationLine } from './Radiation';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 
 export const DEMO_PIN = '2468';
@@ -92,6 +93,7 @@ function CrewCard({ s, state, now, focused }: { s: Snapshot; state: RoomState | 
         <BodyMap s={s} state={state} compact />
         <VitalTiles s={s} state={state} now={now} />
       </div>
+      <RadiationLine id={a.id} state={state} now={now} />
       <p className="cmo-ref">
         Glucose baseline from real data: anonymised commercial spaceflight crew member {a.osdrSubject}, pre-flight fasting mean{' '}
         {Math.round(subject.preflightMean)} mg/dL, {subject.dayAfterLanding} mg/dL the day after landing (NASA OSDR{' '}

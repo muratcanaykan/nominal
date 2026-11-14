@@ -16,6 +16,7 @@ import { useNow, useRoom } from '../lib/useRoom';
 import { Avatar } from './Avatar';
 import { formatAgo, levelClass, ShortLabel } from './bits';
 import { BodyMap } from './BodyMap';
+import { RadiationLine } from './Radiation';
 import { icons } from './icons';
 import { readingNote, readingValue, showsTile, Sparkline } from './health';
 import { RegionDetails } from './RegionDetails';
@@ -110,6 +111,7 @@ function FullCard({
         const fc = s.connected ? forecast(st, id, now) : null;
         return fc ? <p className={`hcard__trend ${levelClass(fc.level)}`}>Early warning · {forecastText(fc)}</p> : null;
       })()}
+      <RadiationLine id={id} state={st} now={now} />
       {region && onRegion ? (
         <RegionDetails region={region} s={s} state={st} onClose={() => onRegion(null)} />
       ) : (

@@ -6,6 +6,7 @@ import { levelFor, routingFor } from './vitals';
 import { radiationAdvisory } from '../data/spaceWeather';
 import { dutyStatus, seesCrewStatus, tabletViews } from './roles';
 import { forecast } from './forecast';
+import { dose } from './radiation';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
@@ -306,5 +307,21 @@ describe('early warning', () => {
     }
     expect(first).not.toBeNull();
     expect(warningAt - first!.at).toBeGreaterThanOrEqual(15_000);
+  });
+});
+
+describe('radiation dose', () => {
+  it('rises on a spacewalk and much more during a solar particle event', () => {
+    const now = 3_600_000;
+    const state = newRoomState(0);
+    const inside = dose(state, '01', now, null);
+    const eva = dose(state, '02', now, null);
+    const spe = dose(state, '01', now, now - 600_000);
+    expect(inside.status).toBe('normal');
+    expect(eva.rateUsvH).toBeGreaterThan(inside.rateUsvH);
+    expect(spe.status).toBe('high');
+    expect(spe.rateUsvH).toBeGreaterThan(eva.rateUsvH);
+    expect(spe.missionMsv).toBeGreaterThan(inside.missionMsv);
+    expect(inside.careerShare).toBeLessThan(0.1);
   });
 });

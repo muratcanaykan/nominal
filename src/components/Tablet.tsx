@@ -15,6 +15,7 @@ import { useNow, useRoom } from '../lib/useRoom';
 import { formatAgo, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
+import { RadiationCard } from './Radiation';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 import { MedicalOverview, PinGate, readUnlocked } from './MedicalView';
 
@@ -99,6 +100,8 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
           </div>
         </section>
       )}
+
+      <RadiationCard id={id} state={state} now={now} />
 
       <BodyMap s={s} state={state} />
 
