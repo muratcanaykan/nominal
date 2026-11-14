@@ -5,6 +5,7 @@ import { crewSummary, moodDue, snapshot, valueAt } from './sim';
 import { levelFor, routingFor } from './vitals';
 import { radiationAdvisory } from '../data/spaceWeather';
 import { dutyStatus, seesCrewStatus, tabletViews } from './roles';
+import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
   it('maps values to nested threshold bands', () => {
@@ -230,5 +231,37 @@ describe('suit sensors', () => {
     expect(snapshot(store.current!, '02', clock.now).readings.helmetCO2.level).toBe(2);
     await store.setLocation('02', 'habitat');
     expect(snapshot(store.current!, '02', clock.now).readings.helmetCO2).toMatchObject({ level: 0, inactive: true });
+  });
+});
+
+describe('sign-in retry', () => {
+  const netError = () => Object.assign(new Error('network'), { code: 'auth/network-request-failed' });
+  const noWait = () => Promise.resolve();
+
+  it('retries network failures and then succeeds', async () => {
+    let calls = 0;
+    const result = await withRetry(
+      async () => {
+        calls++;
+        if (calls < 3) throw netError();
+        return 'ok';
+      },
+      [1000, 2000, 4000],
+      isNetworkError,
+      noWait,
+    );
+    expect(result).toBe('ok');
+    expect(calls).toBe(3);
+  });
+
+  it('gives up after the last attempt and does not retry other errors', async () => {
+    let calls = 0;
+    await expect(withRetry(async () => { calls++; throw netError(); }, [1, 1], isNetworkError, noWait)).rejects.toThrow('network');
+    expect(calls).toBe(3);
+    calls = 0;
+    const denied = Object.assign(new Error('denied'), { code: 'auth/operation-not-allowed' });
+    await expect(withRetry(async () => { calls++; throw denied; }, [1, 1], isNetworkError, noWait)).rejects.toThrow('denied');
+    expect(calls).toBe(1);
+    expect(syncErrorMessage(netError())).toMatch(/internet connection/);
   });
 });

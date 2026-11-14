@@ -4,6 +4,7 @@ import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getDatabase, onValue, ref, set, update, type Database } from 'firebase/database';
 import type { Patch, RoomState } from '../domain/room';
+import { isNetworkError, syncErrorMessage, withRetry } from './retry';
 import type { Backend, RoomStatus } from './store';
 
 const config = {
@@ -20,20 +21,40 @@ export const firebaseConfigured = Boolean(config.apiKey && config.databaseURL);
 
 let app: FirebaseApp | undefined;
 let db: Database | undefined;
-let authReady: Promise<unknown> | undefined;
+let authPromise: Promise<void> | undefined;
 let serverOffset = 0;
+
+/** Waits 1, 2 and 4 seconds between sign-in attempts when the network fails. */
+const SIGN_IN_RETRY_MS = [1000, 2000, 4000];
+
+async function signIn(a: FirebaseApp) {
+  const auth = getAuth(a);
+  await auth.authStateReady();
+  if (auth.currentUser) return;
+  await withRetry(() => signInAnonymously(auth), SIGN_IN_RETRY_MS, isNetworkError);
+}
+
+/** Signs in once per page; after a failure, the next call starts a fresh attempt instead of reusing the error. */
+function ensureAuth(a: FirebaseApp): Promise<void> {
+  if (!authPromise) {
+    authPromise = signIn(a);
+    authPromise.catch(() => {
+      authPromise = undefined;
+    });
+  }
+  return authPromise;
+}
 
 function init() {
   if (!firebaseConfigured) throw new Error('Firebase is not configured. Copy .env.example to .env.local.');
   if (!app) {
     app = initializeApp(config);
     db = getDatabase(app);
-    authReady = signInAnonymously(getAuth(app));
     onValue(ref(db, '.info/serverTimeOffset'), (snap) => {
       serverOffset = Number(snap.val()) || 0;
     });
   }
-  return { db: db!, authReady: authReady! };
+  return { db: db!, authReady: ensureAuth(app) };
 }
 
 export const ROOM_ID_PATTERN = /^[A-Z0-9]{6}$/;
@@ -86,7 +107,7 @@ export class FirebaseBackend implements Backend {
             (e) => listener(null, 'error', `Sync read failed: ${e.message}`),
           );
         })
-        .catch((e: Error) => listener(null, 'error', `Anonymous sign-in failed: ${e.message}`));
+        .catch((e: unknown) => listener(null, 'error', syncErrorMessage(e)));
     } catch (e) {
       listener(null, 'error', e instanceof Error ? e.message : String(e));
     }

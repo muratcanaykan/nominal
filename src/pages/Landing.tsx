@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { newRoomId, ROOM_ID_PATTERN } from '../lib/firebase';
 import { createRoom } from '../lib/RoomRoute';
+import { syncErrorMessage } from '../lib/retry';
 
 export function Landing() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ export function Landing() {
       await createRoom(id);
       navigate(`/r/${id}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      setError(syncErrorMessage(e));
     } finally {
       setBusy(false);
     }
