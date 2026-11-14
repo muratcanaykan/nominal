@@ -6,7 +6,7 @@ import type { RoomState } from '../domain/room';
 import { SCENARIOS } from '../domain/scenarios';
 import { snapshot, type Reading, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, VITAL_IDS, VITALS, type VitalId } from '../domain/vitals';
-import { formatAgo, levelClass, ShortLabel } from './bits';
+import { formatAgo, LevelMark, levelClass, ShortLabel } from './bits';
 
 const TREND_MS = 5 * 60 * 1000;
 
@@ -64,6 +64,7 @@ export function VitalTiles({ s, state, now }: { s: Snapshot; state: RoomState | 
         return (
           <div key={v} className={`cmo-vital ${levelClass(s.connected ? r.level : 'nodata')}${def.suit ? ' cmo-vital--suit' : ''}`}>
             <span className="cmo-vital__label">
+              {(!s.connected || r.level > 0) && <LevelMark status={s.connected ? r.level : 'nodata'} />}
               <ShortLabel text={def.short} />
               {def.suit && <span className="cmo-vital__tag">suit</span>}
               {note && <em> {note}</em>}

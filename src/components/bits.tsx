@@ -4,6 +4,28 @@ import type { Status } from '../domain/vitals';
 
 export const levelClass = (s: Status) => `lvl-${s}`;
 
+/**
+ * Shape for each alert level, so levels never depend on colour alone: ● nominal, ▲ caution, ◆ warning, ■ critical,
+ * ○ no data.
+ */
+export function LevelMark({ status }: { status: Status }) {
+  return (
+    <svg viewBox="0 0 12 12" className="lvl-mark" aria-hidden="true" fill="currentColor">
+      {status === 'nodata' ? (
+        <circle cx="6" cy="6" r="4.2" fill="none" stroke="currentColor" strokeWidth="1.6" />
+      ) : status === 0 ? (
+        <circle cx="6" cy="6" r="4.6" />
+      ) : status === 1 ? (
+        <path d="M6 1 11.2 10.6H.8z" />
+      ) : status === 2 ? (
+        <path d="M6 .6 11.4 6 6 11.4.6 6z" />
+      ) : (
+        <rect x="1.2" y="1.2" width="9.6" height="9.6" rx="1.2" />
+      )}
+    </svg>
+  );
+}
+
 /** A number that glides to its new value instead of jumping. */
 export function AnimatedNumber({ value, decimals = 0 }: { value: number; decimals?: number }) {
   const mv = useMotionValue(value);

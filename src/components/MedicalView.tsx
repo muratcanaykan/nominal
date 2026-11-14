@@ -9,7 +9,7 @@ import { forecast, forecastText } from '../domain/forecast';
 import { crewSummary, MOOD_MISSED_MS, moodPromptStart, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
-import { formatAgo, formatDelay, levelClass } from './bits';
+import { formatAgo, formatDelay, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { RadiationLine } from './Radiation';
@@ -86,7 +86,7 @@ function CrewCard({ s, state, now, focused }: { s: Snapshot; state: RoomState | 
           </span>
         </div>
         <span className={`cmo-badge ${levelClass(s.status)}`}>
-          {s.status === 'nodata' ? `No data · ${formatAgo(now - s.readingsAt)}` : LEVEL_NAMES[s.worst]}
+          <LevelMark status={s.status} /> {s.status === 'nodata' ? `No data · ${formatAgo(now - s.readingsAt)}` : LEVEL_NAMES[s.worst]}
         </span>
       </header>
       <div className="cmo-card__body">

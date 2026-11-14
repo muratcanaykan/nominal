@@ -9,12 +9,12 @@ import { isSuited, locationLabel } from '../domain/locations';
 import { responseSteps } from '../domain/response';
 import { forecast, forecastText } from '../domain/forecast';
 import { crewSummary, snapshot } from '../domain/sim';
-import { LEVEL_NAMES, VITAL_IDS, VITALS, type VitalId } from '../domain/vitals';
+import { LEVEL_NAMES, VITAL_IDS, VITALS, type Status, type VitalId } from '../domain/vitals';
 import type { RoomState } from '../domain/room';
 import type { Snapshot } from '../domain/sim';
 import { useNow, useRoom } from '../lib/useRoom';
 import { Avatar } from './Avatar';
-import { formatAgo, levelClass, ShortLabel } from './bits';
+import { formatAgo, LevelMark, levelClass, ShortLabel } from './bits';
 import { BodyMap } from './BodyMap';
 import { RadiationLine } from './Radiation';
 import { icons } from './icons';
@@ -23,7 +23,7 @@ import { RegionDetails } from './RegionDetails';
 
 const TRENDS: VitalId[] = ['heartRate', 'spo2', 'bloodPressure', 'bodyTemp', 'glucose'];
 
-function CardHead({ id, status, statusLevel, onClose }: { id: AstronautId; status: string; statusLevel: string; onClose: () => void }) {
+function CardHead({ id, status, statusLevel, onClose }: { id: AstronautId; status: string; statusLevel: Status; onClose: () => void }) {
   const { state } = useRoom();
   const a = CREW_BY_ID[id];
   return (
@@ -40,7 +40,9 @@ function CardHead({ id, status, statusLevel, onClose }: { id: AstronautId; statu
       <button className="hcard__close" onClick={onClose} aria-label="Close">
         ✕
       </button>
-      <span className={`hcard__status ${statusLevel}`}>{status}</span>
+      <span className={`hcard__status ${levelClass(statusLevel)}`}>
+        <LevelMark status={statusLevel} /> {status}
+      </span>
     </header>
   );
 }
@@ -106,7 +108,7 @@ function FullCard({
   const status = s.status === 'nodata' ? `No data · ${formatAgo(now - s.readingsAt)}` : LEVEL_NAMES[s.worst];
   return (
     <aside className="hcard" aria-label={`Health of ${CREW_BY_ID[id].name}`}>
-      <CardHead id={id} status={status} statusLevel={levelClass(s.status)} onClose={onClose} />
+      <CardHead id={id} status={status} statusLevel={s.status} onClose={onClose} />
       {(() => {
         const fc = s.connected ? forecast(st, id, now) : null;
         return fc ? <p className={`hcard__trend ${levelClass(fc.level)}`}>Early warning · {forecastText(fc)}</p> : null;
@@ -149,13 +151,13 @@ function CabinCard({
   const claim = st?.claims?.[id];
   const role = tabletRole(viewer, id);
   let status = 'No active alerts';
-  let level = 'lvl-0';
+  let level: Status = 0;
   if (alert) {
     status = alert.kind === 'help' ? 'Help requested' : 'Help needed';
-    level = 'lvl-3';
+    level = 3;
   } else if (!s.connected) {
     status = 'No data';
-    level = 'lvl-nodata';
+    level = 'nodata';
   }
   return (
     <aside className="hcard hcard--cabin" aria-label={`Crew member ${CREW_BY_ID[id].name}`}>

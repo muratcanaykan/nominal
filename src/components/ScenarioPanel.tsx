@@ -8,7 +8,7 @@ import { activeScenario, type ScenarioId } from '../domain/scenarios';
 import { LEVEL_NAMES, type Level } from '../domain/vitals';
 import { useRoom, useStore } from '../lib/useRoom';
 import { Avatar } from './Avatar';
-import { formatDelay, levelClass } from './bits';
+import { formatDelay, LevelMark, levelClass } from './bits';
 import { icons, type IconName } from './icons';
 
 interface CardDef {
@@ -77,7 +77,12 @@ function Card({
         <strong>{title}</strong>
         <span>{detail}</span>
       </span>
-      {badgeText && <span className="scn-card__badge">{badgeText}</span>}
+      {badgeText && (
+        <span className="scn-card__badge">
+          {level !== 'accent' && <LevelMark status={level} />}
+          {badgeText}
+        </span>
+      )}
     </button>
   );
 }

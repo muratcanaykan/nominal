@@ -28,6 +28,25 @@ class SimBoundary extends Component<{ children: ReactNode }, { failed: boolean }
   }
 }
 
+/** Shown while the 3D engine and the astronaut model download: an outline of the vehicle with the crew. */
+function SimLoading() {
+  return (
+    <div className="sim3d__loading" role="status">
+      <div className="sim-skel" aria-hidden="true">
+        <span className="sim-skel__orbit" />
+        <span className="sim-skel__module sim-skel__module--habitat" />
+        <span className="sim-skel__module sim-skel__module--lab" />
+        <span className="sim-skel__module sim-skel__module--airlock" />
+        {[0, 1, 2, 3].map((i) => (
+          <span key={i} className={`sim-skel__crew sim-skel__crew--${i}`} />
+        ))}
+      </div>
+      <p>Loading the 3D mission view…</p>
+      <small>3D engine and astronaut model, about 1 MB</small>
+    </div>
+  );
+}
+
 function CabinOverlay({ viewer, onClose, onOpenTablet }: { viewer: AstronautId; onClose: () => void; onOpenTablet?: (id: AstronautId) => void }) {
   const now = useNow(250);
   return (
@@ -168,7 +187,7 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
         className="sim3d__view"
       >
         <SimBoundary>
-          <Suspense fallback={<div className="sim3d__loading">Loading the 3D simulation…</div>}>
+          <Suspense fallback={<SimLoading />}>
             <Sim3D
               selected={target}
               onSelect={(id) => {

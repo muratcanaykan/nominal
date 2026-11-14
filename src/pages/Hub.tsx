@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router';
 import { Avatar } from '../components/Avatar';
 import { CabinScreen } from '../components/CabinScreen';
+import { AlarmGlow, SoundSwitch } from '../components/AlarmGlow';
 import { NarratorFeed } from '../components/Narrator';
 import { Tour } from '../components/Tour';
 import { Qr } from '../components/Qr';
@@ -18,6 +19,8 @@ import { locationLabel } from '../domain/locations';
 import { canSee } from '../domain/roles';
 import { useRoomId } from '../lib/RoomRoute';
 import { useNow, useRoom } from '../lib/useRoom';
+import { readSound, saveSound } from '../lib/alarm';
+import { useCrewAlarm } from '../lib/useCrewAlarm';
 import { useNarrator } from '../lib/useNarrator';
 import { requestTablet } from '../lib/tabletRequest';
 import { readViewer, saveViewer } from '../lib/viewer';
@@ -211,6 +214,8 @@ export function Hub() {
   const [tour, setTour] = useState(() => params.get('tour') === '1');
   const [narrator, setNarrator] = useState(readNarrator);
   const narration = useNarrator(narrator && !tour);
+  const [sound, setSound] = useState(readSound);
+  const alarm = useCrewAlarm(now, sound);
   useEffect(() => {
     if (params.has('tour')) setParams({}, { replace: true });
   }, [params, setParams]);
@@ -268,7 +273,7 @@ export function Hub() {
             </button>
             <CopyLink />
             <button
-              className={`hub__narr-toggle${narrator ? ' is-on' : ''}`}
+              className={`switch-btn${narrator ? ' is-on' : ''}`}
               role="switch"
               aria-checked={narrator}
               onClick={() => {
@@ -276,11 +281,18 @@ export function Hub() {
                 saveNarrator(!narrator);
               }}
             >
-              <span className="hub__narr-track" aria-hidden="true">
+              <span className="switch-btn__track" aria-hidden="true">
                 <span />
               </span>
               Narrator
             </button>
+            <SoundSwitch
+              on={sound}
+              onChange={(on) => {
+                setSound(on);
+                saveSound(on);
+              }}
+            />
           </div>
         </header>
 
@@ -344,6 +356,7 @@ export function Hub() {
         </section>
       </main>
 
+      <AlarmGlow state={alarm} />
       <ProfileSwitcher persona={persona} onPick={pick} />
       <NarratorFeed beats={narration.beats} onDismiss={narration.dismiss} />
       {tour && <Tour onPersona={tourPersona} onClose={closeTour} />}

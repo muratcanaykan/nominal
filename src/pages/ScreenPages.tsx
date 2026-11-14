@@ -9,6 +9,9 @@ import { CREW, CREW_BY_ID, type AstronautId } from '../domain/crew';
 import type { TabletView } from '../domain/roles';
 import { useRoomId } from '../lib/RoomRoute';
 import { useNow } from '../lib/useRoom';
+import { AlarmGlow, SoundSwitch } from '../components/AlarmGlow';
+import { readSound, saveSound } from '../lib/alarm';
+import { useCrewAlarm } from '../lib/useCrewAlarm';
 import { readViewer, saveViewer } from '../lib/viewer';
 
 function ScreenNav({ children }: { children?: React.ReactNode }) {
@@ -91,6 +94,8 @@ export function CmoRedirect() {
 export function CabinPage() {
   const now = useNow(250);
   const [viewer, setViewer] = useState<AstronautId>(() => readViewer('04'));
+  const [sound, setSound] = useState(readSound);
+  const alarm = useCrewAlarm(now, sound);
   return (
     <main className="screen-page screen-page--cabin">
       <ScreenNav>
@@ -112,8 +117,16 @@ export function CabinPage() {
             ))}
           </select>
         </label>
+        <SoundSwitch
+          on={sound}
+          onChange={(on) => {
+            setSound(on);
+            saveSound(on);
+          }}
+        />
       </ScreenNav>
       <CabinScreen now={now} viewer={viewer} />
+      <AlarmGlow state={alarm} />
     </main>
   );
 }

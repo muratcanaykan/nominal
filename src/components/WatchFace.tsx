@@ -10,7 +10,7 @@ import { forecast, formatEta } from '../domain/forecast';
 import { isEva } from '../domain/locations';
 import { useRoom, useStore } from '../lib/useRoom';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
-import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, levelClass, PainIcon, ShortLabel, SignalOffIcon } from './bits';
+import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, LevelMark, levelClass, PainIcon, ShortLabel, SignalOffIcon } from './bits';
 import { readingNote, readingValue } from './health';
 
 const COMPLICATIONS: VitalId[] = ['spo2', 'bodyTemp', 'glucose'];
@@ -39,6 +39,7 @@ function Complication({ r }: { r: Reading }) {
   return (
     <div className={`comp ${levelClass(r.level)}`}>
       <span className="comp__label">
+        {r.level > 0 && <LevelMark status={r.level} />}
         <ShortLabel text={def.short} />
       </span>
       <span className="comp__value">
@@ -255,7 +256,8 @@ function Keypad({ onSubmit, onCancel }: { onSubmit: (value: number) => void; onC
   );
 }
 
-export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now: number }) {
+/** `quiet`: no device vibration (for the animated example on the landing page). */
+export function WatchFace({ astronautId, now, quiet }: { astronautId: AstronautId; now: number; quiet?: boolean }) {
   const { state } = useRoom();
   const store = useStore();
   const reduce = useReducedMotion();
@@ -289,11 +291,11 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
     }
     lastKey.current = signalKey;
     const pattern = VIBRATION[signalLevel];
-    if (pattern.length && 'vibrate' in navigator) navigator.vibrate(pattern);
+    if (!quiet && pattern.length && 'vibrate' in navigator) navigator.vibrate(pattern);
     if (!reduce && signalLevel >= 2 && scope.current) {
       animateCase(scope.current, { x: [0, -7, 7, -5, 5, -2, 0] }, { duration: 0.5 });
     }
-  }, [signalKey, signalLevel, reduce, scope, animateCase]);
+  }, [signalKey, signalLevel, reduce, scope, animateCase, quiet]);
 
   // Mood check-in: a reminder vibration after 10 s without an answer, and an "unanswered" note after 30 s.
   const moodSince = snap.connected ? moodPromptStart(state ?? undefined, astronautId, now, MISSION_DAY_OFFSET_MS) : null;
@@ -303,9 +305,9 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
   useEffect(() => {
     if (!remindKey || reminded.current === remindKey) return;
     reminded.current = remindKey;
-    if ('vibrate' in navigator) navigator.vibrate([180, 120, 180]);
+    if (!quiet && 'vibrate' in navigator) navigator.vibrate([180, 120, 180]);
     if (!reduce && scope.current) animateCase(scope.current, { x: [0, -5, 5, -3, 3, 0] }, { duration: 0.45 });
-  }, [remindKey, reduce, scope, animateCase]);
+  }, [remindKey, reduce, scope, animateCase, quiet]);
 
   // Early warning: a reading heading for a worse level soon.
   const fc = snap.connected ? forecast(state ?? undefined, astronautId, now) : null;
@@ -370,7 +372,9 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
                 transition={{ type: 'spring', stiffness: 420, damping: 30 }}
               >
                 <div className="banner__text">
-                  <strong>{LEVEL_NAMES[alert.level]}</strong>
+                  <strong>
+                    <LevelMark status={alert.level} /> {LEVEL_NAMES[alert.level]}
+                  </strong>
                   <span>
                     {VITALS[alert.id].label} {readingValue(alert)} {VITALS[alert.id].unit}
                     {alert.pending ? ' (sensor)' : bannerNote ? ` (${bannerNote})` : ''}

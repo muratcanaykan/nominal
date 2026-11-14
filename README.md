@@ -48,6 +48,9 @@ that helps astronauts assess their own health and guides them on what to do.
   raises it (a spacewalk has less shielding; a solar particle event from NASA DONKI or the demo raises it sharply) and
   the dose received this mission against the career limit. The medical officer sees one line per crew member. Base
   rates come from published measurements; the spacewalk and solar event factors are prototype assumptions.
+- **Readable at a glance** — alert levels have a shape as well as a colour (● nominal, ▲ caution, ◆ warning,
+  ■ critical, ○ no data), so they do not depend on colour vision. While an alert needs the crew, the demo page and the
+  cabin screen glow red at the edges and play a short alert tone (it can be switched off).
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
 - **Guided tour** — one health event played live in about a minute: a spacewalker's blood oxygen drifts down, and

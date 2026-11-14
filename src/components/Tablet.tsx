@@ -8,24 +8,32 @@ import { forecast, forecastText } from '../domain/forecast';
 import { isEva, locationLabel } from '../domain/locations';
 import type { RoomState } from '../domain/room';
 import { crewSummary, missionClock, snapshot } from '../domain/sim';
-import { LEVEL_NAMES, routingFor, VITALS } from '../domain/vitals';
+import { LEVEL_NAMES, routingFor, VITALS, type Status } from '../domain/vitals';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { useTabletRequest } from '../lib/tabletRequest';
 import { useNow, useRoom } from '../lib/useRoom';
-import { formatAgo, levelClass } from './bits';
+import { formatAgo, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { RadiationCard } from './Radiation';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 import { MedicalOverview, PinGate, readUnlocked } from './MedicalView';
 
-const DUTY_LEVEL: Record<DutyStatus, string> = {
-  clear: 'lvl-0',
-  medical: 'lvl-2',
-  critical: 'lvl-3',
-  help: 'lvl-3',
-  nodata: 'lvl-nodata',
-};
+const DUTY_STATUS: Record<DutyStatus, Status> = { clear: 0, medical: 2, critical: 3, help: 3, nodata: 'nodata' };
+const DUTY_LEVEL = (d: DutyStatus) => levelClass(DUTY_STATUS[d]);
+
+/** Level shapes, so alert levels never depend on colour alone. */
+function LevelLegend() {
+  return (
+    <span className="level-legend">
+      {([0, 1, 2, 3] as const).map((l) => (
+        <span key={l} className={levelClass(l)}>
+          <LevelMark status={l} /> {LEVEL_NAMES[l]}
+        </span>
+      ))}
+    </span>
+  );
+}
 
 function whoIsTold(level: 0 | 1 | 2 | 3): string {
   const r = routingFor(level);
@@ -66,7 +74,9 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
         </div>
       )}
       <section className={`tablet-status ${levelClass(s.status)}`}>
-        <span className="tablet-status__badge">{s.status === 'nodata' ? 'No data' : LEVEL_NAMES[s.worst]}</span>
+        <span className="tablet-status__badge">
+          <LevelMark status={s.status} /> {s.status === 'nodata' ? 'No data' : LEVEL_NAMES[s.worst]}
+        </span>
         <div className="tablet-status__text">
           <strong>{headline}</strong>
           <p>{action}</p>
@@ -138,11 +148,13 @@ function CrewStatus({ state, now }: { state: RoomState | undefined; now: number 
           const d = dutyStatus(summary.snapshots[a.id], state, now);
           const claim = state?.claims?.[a.id];
           return (
-            <li key={a.id} className={`duty ${DUTY_LEVEL[d]}`}>
+            <li key={a.id} className={`duty ${DUTY_LEVEL(d)}`}>
               <div className="duty__who">
                 <Avatar id={a.id} size={26} />
                 <strong>{a.name}</strong>
-                <span className="duty__dot" aria-hidden="true" />
+                <span className="duty__mark">
+                  <LevelMark status={DUTY_STATUS[d]} />
+                </span>
               </div>
               <span className="duty__where">
                 {a.role} · {locationLabel(state, a.id)}
@@ -214,7 +226,10 @@ export const Tablet = memo(function Tablet({ astronautId, initialView }: { astro
         {view === 'self' && seesCrewStatus(astronautId) && <CrewStatus state={st} now={now} />}
         {view === 'self' && <MyHealth id={astronautId} state={st} now={now} titled={seesCrewStatus(astronautId)} />}
         {view === 'crewMedical' && <CrewMedical state={st} now={now} focus={focus} />}
-        <footer className="tablet__foot">Simulated data</footer>
+        <footer className="tablet__foot">
+          <LevelLegend />
+          <span>Simulated data</span>
+        </footer>
       </div>
     </div>
   );

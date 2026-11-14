@@ -8,7 +8,7 @@ import type { RoomState } from '../domain/room';
 import type { Snapshot } from '../domain/sim';
 import { isSuited } from '../domain/locations';
 import { LEVEL_NAMES, VITALS } from '../domain/vitals';
-import { levelClass } from './bits';
+import { LevelMark, levelClass } from './bits';
 import { readingNote, readingValue } from './health';
 import { RegionDetails, RegionSheet } from './RegionDetails';
 
@@ -165,7 +165,9 @@ export function BodyMap({
           <ul className="bodymap-findings">
             {findings.map(({ region, r }) => (
               <li key={`${region}-${r.id}`} className={levelClass(r.level)}>
-                <strong>{REGION_LABELS[region]}</strong>
+                <strong>
+                  <LevelMark status={r.level} /> {REGION_LABELS[region]}
+                </strong>
                 <span>
                   {VITALS[r.id].label} {readingValue(r)} {VITALS[r.id].unit} · {LEVEL_NAMES[r.level]}
                   {readingNote(r, state, s.astronautId) ? ` (${readingNote(r, state, s.astronautId)})` : ''}
