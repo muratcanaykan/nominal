@@ -34,6 +34,9 @@ that helps astronauts assess their own health and guides them on what to do.
 - **3D mission simulation** — the vehicle and the crew in 3D: move an astronaut between the modules, the airlock and a
   spacewalk, and change their readings with sliders. Suit regions glow in the alert colour, and a simulated solar
   particle event shows as a particle stream. Every screen follows the simulation.
+  Arms and legs move (a help call waves, a cold hand shakes), data pulses show telemetry going to the vehicle, warnings
+  going to the medical officer and critical alerts travelling to Earth with the mission's signal delay. The cabin
+  screen hangs inside the habitat module; clicking it opens the live cabin screen. The view has a full-screen mode.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
 - **Live demo** — pick a crew member to see the mission through their devices: the cabin screen, the crew's watches and

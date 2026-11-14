@@ -8,13 +8,14 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import type { BodyRegion } from '../domain/body';
 import { regionStates } from '../domain/bodymap';
-import { CREW, type AstronautId, type ProfileId } from '../domain/crew';
-import { locationOf, type LocationId } from '../domain/locations';
-import { crewSummary } from '../domain/sim';
+import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, PROFILES, type AstronautId, type ProfileId } from '../domain/crew';
+import { locationLabel, locationOf, type LocationId } from '../domain/locations';
+import { crewSummary, missionClock } from '../domain/sim';
 import { LEVEL_NAMES, type Level, type Status } from '../domain/vitals';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { useNow, useRoom } from '../lib/useRoom';
-import { orient, regionGeometry, REGIONS } from './astronautGeometry';
+import { formatDelay } from '../components/bits';
+import { orient, regionParts, REGIONS } from './astronautGeometry';
 
 const MODEL_URL = '/models/astronaut-web.glb';
 const HEIGHT = 1.45;
@@ -43,9 +44,9 @@ const SLOTS: Record<LocationId, [number, number, number][]> = {
     [-4.45, 0, -0.1],
   ],
   habitat: [
-    [-1.3, 0, 0],
-    [0.5, 0, 0],
-    [-0.4, 0, 0.3],
+    [-1.6, 0, 0.25],
+    [0.8, 0, 0.25],
+    [-0.4, -0.2, 0.55],
   ],
   lab: [
     [2.8, 0, 0],
@@ -65,7 +66,7 @@ const TETHER_ANCHOR = new THREE.Vector3(-5.6, 0.55, 0);
 
 const PLANETS: Record<ProfileId, { color: string; radius: number; position: [number, number, number]; glow: string }> = {
   leo: { color: '#1d4e89', radius: 46, position: [10, -62, -70], glow: '#7dd3fc' },
-  lunar: { color: '#8a8f98', radius: 16, position: [-46, -40, -95], glow: '#cbd5e1' },
+  lunar: { color: '#8a8f98', radius: 16, position: [42, -30, -100], glow: '#cbd5e1' },
   mars: { color: '#b4472a', radius: 34, position: [18, -54, -80], glow: '#fb923c' },
 };
 
@@ -82,7 +83,17 @@ interface CrewVisual {
   help: boolean;
 }
 
-function useCrewVisuals(): { crew: CrewVisual[]; profile: ProfileId; solar: boolean } {
+interface ScreenInfo {
+  clock: string;
+  profile: string;
+  connected: number;
+  total: number;
+  advisory: boolean;
+  alerts: { name: string; location: string; help: boolean; respondedBy?: string }[];
+  crew: { name: string; location: string; alert: boolean; connected: boolean }[];
+}
+
+function useCrewVisuals(): { crew: CrewVisual[]; profile: ProfileId; solar: boolean; screen: ScreenInfo } {
   const { state } = useRoom();
   const now = useNow(400);
   const weather = useSpaceWeather();
@@ -107,7 +118,29 @@ function useCrewVisuals(): { crew: CrewVisual[]; profile: ProfileId; solar: bool
       help: !!st?.help?.[a.id],
     } satisfies CrewVisual;
   });
-  return { crew, profile: st?.profile ?? 'lunar', solar: !!radiationAdvisory(st, weather, now) };
+  const profile = st?.profile ?? 'lunar';
+  const solar = !!radiationAdvisory(st, weather, now);
+  const alerting = new Set(summary.alerts.map((x) => x.astronautId));
+  const screen: ScreenInfo = {
+    clock: missionClock(st, now, MISSION_DAY_OFFSET_MS),
+    profile: PROFILES[profile].label,
+    connected: summary.connected,
+    total: summary.total,
+    advisory: solar,
+    alerts: summary.alerts.map((x) => ({
+      name: CREW_BY_ID[x.astronautId].name,
+      location: locationLabel(st, x.astronautId),
+      help: x.kind === 'help',
+      respondedBy: x.claimedBy ? CREW_BY_ID[x.claimedBy].name : undefined,
+    })),
+    crew: CREW.map((a) => ({
+      name: a.name,
+      location: locationLabel(st, a.id),
+      alert: alerting.has(a.id),
+      connected: summary.snapshots[a.id].connected,
+    })),
+  };
+  return { crew, profile, solar, screen };
 }
 
 // ---- astronaut ------------------------------------------------------------------------------------------
@@ -123,9 +156,9 @@ function useAstronautGeometry() {
     const suit = meshes[0].geometry;
     suit.computeBoundingBox();
     const bounds = suit.boundingBox!.clone();
-    const body = regionGeometry(suit.clone(), HEIGHT, bounds);
+    const parts = regionParts(suit.clone(), HEIGHT, bounds);
     const visor = meshes[1] ? orient(meshes[1].geometry.clone(), HEIGHT, bounds) : null;
-    return { body, visor };
+    return { parts, visor };
   }, [gltf]);
 }
 
@@ -146,8 +179,12 @@ function Astronaut({
   positions: Map<AstronautId, THREE.Vector3>;
   reduce: boolean;
 }) {
-  const { body, visor } = useAstronautGeometry();
+  const { parts, visor } = useAstronautGeometry();
   const group = useRef<THREE.Group>(null);
+  const armL = useRef<THREE.Group>(null);
+  const armR = useRef<THREE.Group>(null);
+  const legL = useRef<THREE.Group>(null);
+  const legR = useRef<THREE.Group>(null);
   const halo = useRef<THREE.Mesh>(null);
   const ring = useRef<THREE.Mesh>(null);
   const path = useRef<THREE.Vector3[]>([]);
@@ -209,8 +246,26 @@ function Astronaut({
       g.rotation.x = eva && !reduce ? Math.sin(t * 0.4 + phase) * 0.12 : 0;
     }
 
-    // Region glow.
+    // Limbs: arms float half-raised in weightlessness; a help call waves, a cold hand shakes, no data hangs limp.
     const offline = v.status === 'nodata';
+    const eva = v.location === 'eva';
+    const sway = reduce ? 0 : Math.sin(t * 0.9 + phase) * 0.12;
+    let left = -0.55 + sway;
+    let right = 0.55 - sway;
+    if (v.help) right = -1.3 + (reduce ? 0 : Math.sin(t * 7) * 0.4);
+    if ((v.regions.leftHand ?? 0) > 0) left = -0.3 + (reduce ? 0 : Math.sin(t * 12) * 0.14);
+    if ((v.regions.rightHand ?? 0) > 0 && !v.help) right = 0.3 + (reduce ? 0 : Math.sin(t * 12) * 0.14);
+    if (offline) {
+      left = -1.25;
+      right = 1.25;
+    }
+    if (armL.current) armL.current.rotation.z = left;
+    if (armR.current) armR.current.rotation.z = right;
+    const kick = reduce || offline ? 0 : Math.sin(t * 0.7 + phase) * (eva ? 0.2 : 0.1);
+    if (legL.current) legL.current.rotation.x = kick;
+    if (legR.current) legR.current.rotation.x = -kick;
+
+    // Region glow.
     REGIONS.forEach((region, i) => {
       const m = materials[i];
       const level = v.regions[region] ?? 0;
@@ -254,7 +309,19 @@ function Astronaut({
       onPointerOver={() => (document.body.style.cursor = 'pointer')}
       onPointerOut={() => (document.body.style.cursor = '')}
     >
-      <mesh geometry={body} material={materials} castShadow />
+      <mesh geometry={parts.core.geometry} material={materials} />
+      <group ref={armL} position={parts.armL.pivot}>
+        <mesh geometry={parts.armL.geometry} material={materials} />
+      </group>
+      <group ref={armR} position={parts.armR.pivot}>
+        <mesh geometry={parts.armR.geometry} material={materials} />
+      </group>
+      <group ref={legL} position={parts.legL.pivot}>
+        <mesh geometry={parts.legL.geometry} material={materials} />
+      </group>
+      <group ref={legR} position={parts.legR.pivot}>
+        <mesh geometry={parts.legR.geometry} material={materials} />
+      </group>
       {visor && <mesh geometry={visor} material={visorMaterial} />}
       <mesh ref={halo} visible={false}>
         <sphereGeometry args={[0.9, 32, 16]} />
@@ -446,6 +513,245 @@ function SolarStream() {
   );
 }
 
+
+// ---- cabin screen inside the habitat ------------------------------------------------------------------------
+
+const SCREEN_POS = new THREE.Vector3(-0.4, 0.15, -0.95);
+const SCREEN_W = 1.25;
+const SCREEN_H = 0.7;
+
+function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, r);
+}
+
+/** Draws a small version of the cabin screen (same rules: no health values, only alerts that need the crew). */
+function drawScreen(ctx: CanvasRenderingContext2D, info: ScreenInfo) {
+  const W = ctx.canvas.width;
+  const H = ctx.canvas.height;
+  const font = (w: number, px: number) => `${w} ${px}px Manrope, system-ui, sans-serif`;
+  ctx.fillStyle = '#0b1118';
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = '#f3f6fa';
+  ctx.font = font(800, 30);
+  ctx.fillText('NOMINAL', 36, 54);
+  ctx.fillStyle = '#9aa8b8';
+  ctx.font = font(500, 22);
+  ctx.fillText('Crew health', 190, 54);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${info.clock} · ${info.profile}`, W - 36, 54);
+  ctx.textAlign = 'left';
+
+  const alert = info.alerts.length > 0;
+  const tone = alert ? '#fb5072' : info.advisory ? '#fb923c' : '#34d399';
+  roundRect(ctx, 32, 80, W - 64, 74, 16);
+  ctx.fillStyle = 'rgba(255,255,255,0.06)';
+  ctx.fill();
+  ctx.fillStyle = tone;
+  ctx.fillRect(32, 80, 8, 74);
+  ctx.font = font(700, 32);
+  const status = alert
+    ? `${info.alerts.length} crew alert${info.alerts.length > 1 ? 's' : ''}${info.advisory ? ' · radiation advisory' : ''}`
+    : info.advisory
+      ? 'Radiation advisory'
+      : 'No active crew alerts';
+  ctx.fillText(status, 60, 128);
+  ctx.fillStyle = '#9aa8b8';
+  ctx.font = font(500, 22);
+  ctx.textAlign = 'right';
+  ctx.fillText(`${info.connected}/${info.total} devices connected`, W - 56, 126);
+  ctx.textAlign = 'left';
+
+  let y = 176;
+  const first = info.alerts[0];
+  if (first) {
+    roundRect(ctx, 32, y, W - 64, 150, 18);
+    ctx.fillStyle = 'rgba(251,80,114,0.16)';
+    ctx.fill();
+    ctx.strokeStyle = '#fb5072';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    ctx.fillStyle = '#fb5072';
+    ctx.font = font(800, 22);
+    ctx.fillText(first.help ? 'HELP REQUESTED' : 'HELP NEEDED', 60, y + 40);
+    ctx.fillStyle = '#f3f6fa';
+    ctx.font = font(800, 44);
+    ctx.fillText(first.name, 60, y + 92);
+    ctx.fillStyle = '#9aa8b8';
+    ctx.font = font(500, 22);
+    ctx.fillText(first.respondedBy ? `${first.location} · ${first.respondedBy} is responding` : first.location, 60, y + 128);
+    y += 170;
+  }
+  const rowH = first ? 44 : 64;
+  for (const c of info.crew) {
+    roundRect(ctx, 32, y, W - 64, rowH - 8, 12);
+    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(56, y + (rowH - 8) / 2, 7, 0, Math.PI * 2);
+    ctx.fillStyle = !c.connected ? '#94a3b8' : c.alert ? '#fb5072' : '#34d399';
+    ctx.fill();
+    ctx.fillStyle = '#f3f6fa';
+    ctx.font = font(600, first ? 20 : 24);
+    ctx.fillText(c.name, 78, y + (rowH - 8) / 2 + 8);
+    ctx.fillStyle = '#9aa8b8';
+    ctx.textAlign = 'right';
+    ctx.fillText(c.connected ? c.location : 'No data', W - 56, y + (rowH - 8) / 2 + 8);
+    ctx.textAlign = 'left';
+    y += rowH;
+  }
+}
+
+function CabinScreen3D({ info, focused, onOpen }: { info: ScreenInfo; focused: boolean; onOpen: () => void }) {
+  const canvas = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 1024;
+    c.height = 576;
+    return c;
+  }, []);
+  const texture = useMemo(() => {
+    const t = new THREE.CanvasTexture(canvas);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, [canvas]);
+  const frame = useRef<THREE.MeshStandardMaterial>(null);
+  const signature = JSON.stringify({ ...info, clock: info.clock.slice(0, -3) });
+  useEffect(() => {
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    drawScreen(ctx, JSON.parse(signature) as ScreenInfo);
+    texture.needsUpdate = true;
+  }, [signature, canvas, texture]);
+  useEffect(() => () => texture.dispose(), [texture]);
+  const alert = info.alerts.length > 0;
+  useFrame((s) => {
+    if (!frame.current) return;
+    frame.current.emissive.set(alert ? LEVEL_COLOR[3] : ACCENT);
+    frame.current.emissiveIntensity = alert ? 0.6 + 1.4 * pulse(s.clock.elapsedTime, 0.9) : 0.35;
+  });
+  return (
+    <group
+      position={SCREEN_POS}
+      onClick={(e) => {
+        e.stopPropagation();
+        onOpen();
+      }}
+      onPointerOver={() => (document.body.style.cursor = 'pointer')}
+      onPointerOut={() => (document.body.style.cursor = '')}
+    >
+      <mesh position={[0, 0, -0.02]}>
+        <boxGeometry args={[SCREEN_W + 0.08, SCREEN_H + 0.08, 0.03]} />
+        <meshStandardMaterial ref={frame} color="#1f2937" metalness={0.6} roughness={0.4} emissive={ACCENT} />
+      </mesh>
+      <mesh>
+        <planeGeometry args={[SCREEN_W, SCREEN_H]} />
+        <meshBasicMaterial map={texture} toneMapped={false} />
+      </mesh>
+      {!focused && (
+        <Html position={[0, SCREEN_H / 2 + 0.16, 0]} center distanceFactor={7} zIndexRange={[15, 0]}>
+          <button className="sim-tag sim-tag--screen" onClick={onOpen}>
+            Cabin screen <small>open</small>
+          </button>
+        </Html>
+      )}
+    </group>
+  );
+}
+
+// ---- data flow: telemetry to the vehicle, alerts to the medical officer, the cabin screen and Earth -------------
+
+const ROUTER = new THREE.Vector3(-0.4, 1.75, 0);
+const EARTH_FAR = new THREE.Vector3(-58, 20, -90);
+
+function Pulses({ from, to, color, count = 3, speed = 0.5, size = 0.05 }: { from: () => THREE.Vector3 | undefined; to: () => THREE.Vector3 | undefined; color: string; count?: number; speed?: number; size?: number }) {
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  useFrame((s) => {
+    const a = from();
+    const b = to();
+    refs.current.forEach((m, i) => {
+      if (!m) return;
+      if (!a || !b) {
+        m.visible = false;
+        return;
+      }
+      const k = (s.clock.elapsedTime * speed + i / count) % 1;
+      m.visible = true;
+      m.position.lerpVectors(a, b, k);
+      m.position.y += Math.sin(k * Math.PI) * 0.25;
+      m.scale.setScalar(0.6 + Math.sin(k * Math.PI) * 0.6);
+    });
+  });
+  return (
+    <>
+      {Array.from({ length: count }, (_, i) => (
+        <mesh key={i} ref={(m) => void (refs.current[i] = m)}>
+          <sphereGeometry args={[size, 12, 8]} />
+          <meshBasicMaterial color={color} toneMapped={false} />
+        </mesh>
+      ))}
+    </>
+  );
+}
+
+function Antenna() {
+  return (
+    <group position={[ROUTER.x, 1.3, 0]}>
+      <mesh position={[0, 0.2, 0]}>
+        <cylinderGeometry args={[0.02, 0.02, 0.4, 8]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.7} roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 0.46, 0]} rotation={[Math.PI, 0, 0]}>
+        <coneGeometry args={[0.22, 0.12, 24, 1, true]} />
+        <meshStandardMaterial color="#e2e8f0" metalness={0.5} roughness={0.3} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
+function DataFlow({ crew, positions, profile }: { crew: CrewVisual[]; positions: Map<AstronautId, THREE.Vector3>; profile: ProfileId }) {
+  const cmo = CREW.find((c) => c.cmo);
+  const toCmo = crew.some((v) => v.status !== 'nodata' && (v.worst >= 2 || v.help));
+  const critical = crew.some((v) => v.status !== 'nodata' && (v.worst === 3 || v.help));
+  const planet = PLANETS[profile];
+  const earth = useMemo(() => {
+    if (profile !== 'leo') return EARTH_FAR.clone();
+    const c = new THREE.Vector3(...planet.position);
+    return c.clone().add(ROUTER.clone().sub(c).normalize().multiplyScalar(planet.radius));
+  }, [profile, planet]);
+  const delay = PROFILES[profile].earthDelayMs;
+  // The pulse to Earth moves slower the longer the real delay (scaled for the demo).
+  const earthSpeed = delay > 60_000 ? 0.08 : delay > 1000 ? 0.25 : 0.45;
+  const router = () => ROUTER;
+  return (
+    <>
+      <Antenna />
+      {crew
+        .filter((v) => v.status !== 'nodata')
+        .map((v) => (
+          <Pulses key={v.id} from={() => positions.get(v.id)} to={router} color={LEVEL_COLOR[v.help ? 3 : v.worst]} count={2} speed={0.45} size={0.045} />
+        ))}
+      {toCmo && cmo && <Pulses from={router} to={() => positions.get(cmo.id)} color={LEVEL_COLOR[2]} count={3} speed={0.6} size={0.06} />}
+      {critical && <Pulses from={router} to={() => SCREEN_POS} color={LEVEL_COLOR[3]} count={3} speed={0.7} size={0.06} />}
+      <Line points={[ROUTER, earth]} color={critical ? LEVEL_COLOR[3] : ACCENT} lineWidth={1} dashed dashSize={0.6} gapSize={0.5} transparent opacity={critical ? 0.7 : 0.25} />
+      {critical && <Pulses from={router} to={() => earth} color={LEVEL_COLOR[3]} count={4} speed={earthSpeed} size={0.35} />}
+      {profile !== 'leo' && (
+        <mesh position={EARTH_FAR}>
+          <sphereGeometry args={[2.4, 32, 16]} />
+          <meshStandardMaterial color="#2563eb" emissive="#1d4ed8" emissiveIntensity={0.5} />
+        </mesh>
+      )}
+      <Html position={earth.clone().add(new THREE.Vector3(0, profile === 'leo' ? 6 : 4, 0))} center distanceFactor={40} zIndexRange={[10, 0]}>
+        <span className={`sim-earth${critical ? ' is-alert' : ''}`}>
+          Earth · {formatDelay(delay)}
+          {critical ? ' · flight surgeons notified' : ''}
+        </span>
+      </Html>
+    </>
+  );
+}
+
 const HOME_TARGET = new THREE.Vector3(0.4, 0.4, 0);
 const HOME_OFFSET = new THREE.Vector3(2.6, 3, 10.8);
 const Y_AXIS = new THREE.Vector3(0, 1, 0);
@@ -454,21 +760,38 @@ const Y_AXIS = new THREE.Vector3(0, 1, 0);
  * Orbit camera. In the overview it sways gently around a three-quarter view; selecting an astronaut flies to them.
  * Dragging takes over for a while.
  */
-function CameraRig({ selected, positions, reduce }: { selected: AstronautId | null; positions: Map<AstronautId, THREE.Vector3>; reduce: boolean }) {
+function CameraRig({
+  selected,
+  positions,
+  reduce,
+  focusScreen,
+}: {
+  selected: AstronautId | null;
+  positions: Map<AstronautId, THREE.Vector3>;
+  reduce: boolean;
+  focusScreen: boolean;
+}) {
   const controls = useRef<{ target: THREE.Vector3; update: () => void } | null>(null);
   const fly = useRef(0);
   const idleAt = useRef(0);
-  const last = useRef<AstronautId | null | undefined>(undefined);
+  const last = useRef<string | undefined>(undefined);
   const clock = useRef(0);
   useFrame((state, delta) => {
     const c = controls.current;
     if (!c) return;
     const t = state.clock.elapsedTime;
     clock.current = t;
-    if (last.current !== selected) {
-      last.current = selected;
+    const key = `${selected}-${focusScreen}`;
+    if (last.current !== key) {
+      last.current = key;
       fly.current = 2;
       idleAt.current = 0;
+    }
+    if (focusScreen) {
+      c.target.lerp(SCREEN_POS, 0.08);
+      state.camera.position.lerp(SCREEN_POS.clone().add(new THREE.Vector3(0, 0.05, 2.4)), 0.08);
+      c.update();
+      return;
     }
     const p = selected ? positions.get(selected) : undefined;
     const goal = p ? p.clone() : HOME_TARGET;
@@ -506,8 +829,15 @@ function CameraRig({ selected, positions, reduce }: { selected: AstronautId | nu
   );
 }
 
-function Scene({ selected, onSelect, reduce }: { selected: AstronautId | null; onSelect: (id: AstronautId) => void; reduce: boolean }) {
-  const { crew, profile, solar } = useCrewVisuals();
+interface SceneProps {
+  selected: AstronautId | null;
+  onSelect: (id: AstronautId) => void;
+  focusScreen: boolean;
+  onScreenClick: () => void;
+}
+
+function Scene({ selected, onSelect, focusScreen, onScreenClick, reduce }: SceneProps & { reduce: boolean }) {
+  const { crew, profile, solar, screen } = useCrewVisuals();
   const positions = useMemo(() => new Map<AstronautId, THREE.Vector3>(), []);
   const moduleLevels: Partial<Record<LocationId, Level>> = {};
   for (const v of crew) {
@@ -536,7 +866,9 @@ function Scene({ selected, onSelect, reduce }: { selected: AstronautId | null; o
           <Tether key={v.id} positions={positions} id={v.id} />
         ))}
       {solar && <SolarStream />}
-      <CameraRig selected={selected} positions={positions} reduce={reduce} />
+      <CabinScreen3D info={screen} focused={focusScreen} onOpen={onScreenClick} />
+      <DataFlow crew={crew} positions={positions} profile={profile} />
+      <CameraRig selected={selected} positions={positions} reduce={reduce} focusScreen={focusScreen} />
       <EffectComposer>
         <Bloom intensity={0.9} luminanceThreshold={0.55} luminanceSmoothing={0.2} mipmapBlur />
         <Vignette offset={0.25} darkness={0.7} />
@@ -545,7 +877,7 @@ function Scene({ selected, onSelect, reduce }: { selected: AstronautId | null; o
   );
 }
 
-export default function Sim3D({ selected, onSelect }: { selected: AstronautId | null; onSelect: (id: AstronautId) => void }) {
+export default function Sim3D(props: SceneProps) {
   const reduce = useMemo(() => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false, []);
   return (
     <Canvas
@@ -555,7 +887,7 @@ export default function Sim3D({ selected, onSelect }: { selected: AstronautId | 
       gl={{ antialias: true }}
       aria-label="3D view of the vehicle and crew"
     >
-      <Scene selected={selected} onSelect={onSelect} reduce={reduce} />
+      <Scene {...props} reduce={reduce} />
     </Canvas>
   );
 }

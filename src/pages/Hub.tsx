@@ -1,11 +1,11 @@
 // Live demo: one mission seen from the crew's side. Pick a crew member to see what they can see: the shared cabin
 // screen, the crew's watches and that person's own tablet. Scenarios and device links open as side panels.
 
-import { Component, lazy, Suspense, useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { CabinScreen } from '../components/CabinScreen';
 import { Qr } from '../components/Qr';
-import { SimPanel } from '../components/SimPanel';
+import { SimSection } from '../components/SimSection';
 import { Tablet } from '../components/Tablet';
 import { WatchFace } from '../components/WatchFace';
 import { DEMO_PIN } from '../components/MedicalView';
@@ -35,22 +35,6 @@ const SUIT_BUTTONS: { id: ScenarioId; label: string; level: string }[] = [
 ];
 
 type DrawerId = 'scenarios' | 'devices';
-
-// three.js is large: load the 3D view only when the page needs it.
-const Sim3D = lazy(() => import('../three/Sim3D'));
-
-class SimBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {
-  state = { failed: false };
-  static getDerivedStateFromError() {
-    return { failed: true };
-  }
-  render() {
-    if (this.state.failed) {
-      return <div className="sim3d__fallback">The 3D view could not start in this browser (WebGL is needed). The controls beside it still work.</div>;
-    }
-    return this.props.children;
-  }
-}
 
 function Drawer({ id, title, open, onClose, children }: { id: string; title: string; open: boolean; onClose: () => void; children: ReactNode }) {
   useEffect(() => {
@@ -286,7 +270,6 @@ export function Hub() {
   const now = useNow(250);
   const [persona, setPersona] = useState<AstronautId>(() => readViewer('02'));
   const [drawer, setDrawer] = useState<DrawerId | null>(null);
-  const [simTarget, setSimTarget] = useState<AstronautId | null>(null);
   const close = useCallback(() => setDrawer(null), []);
   const toggle = (d: DrawerId) => setDrawer((cur) => (cur === d ? null : d));
   const pick = (id: AstronautId) => {
@@ -335,17 +318,7 @@ export function Hub() {
             </h2>
             <span>Pick an astronaut, move them and change their readings. Every screen below follows.</span>
           </div>
-          <div className="sim3d">
-            <div className="sim3d__view">
-              <SimBoundary>
-                <Suspense fallback={<div className="sim3d__loading">Loading the 3D simulation…</div>}>
-                  <Sim3D selected={simTarget} onSelect={setSimTarget} />
-                </Suspense>
-              </SimBoundary>
-              <p className="sim3d__hint">Drag to rotate · Astronaut model: NASA 3D Resources · Simulated data</p>
-            </div>
-            <SimPanel target={simTarget} onTarget={setSimTarget} />
-          </div>
+          <SimSection viewer={persona} />
         </section>
 
         <section className="stage" aria-labelledby="stage-cabin">

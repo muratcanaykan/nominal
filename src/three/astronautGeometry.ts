@@ -1,4 +1,5 @@
-// Splits the NASA astronaut model into body regions so each region can glow in its own alert colour.
+// Splits the NASA astronaut model into body regions (each glows in its own alert colour) and into moving parts
+// (arms and legs turn at the shoulders and hips; the model has no skeleton).
 // Model space (as published): z is up, the visor faces -y, the astronaut's left hand is at +x, arms out (T-pose).
 
 import * as THREE from 'three';
@@ -31,11 +32,62 @@ export function regionAt(x: number, y: number, z: number): BodyRegion {
   return 'chest';
 }
 
-/**
- * Reorders the triangles of a mesh by region and adds one draw group per region (material index = REGIONS index).
- * Returns a geometry rotated to y-up, centred and scaled to `height` world units.
- */
-export function regionGeometry(src: THREE.BufferGeometry, height: number, bounds: THREE.Box3): THREE.BufferGeometry {
+export type PartId = 'core' | 'armL' | 'armR' | 'legL' | 'legR';
+export const PART_IDS: PartId[] = ['core', 'armL', 'armR', 'legL', 'legR'];
+
+const PART_OF: Record<BodyRegion, PartId> = {
+  head: 'core',
+  chest: 'core',
+  leftShoulder: 'core',
+  rightShoulder: 'core',
+  leftArm: 'armL',
+  leftHand: 'armL',
+  rightArm: 'armR',
+  rightHand: 'armR',
+  leftLeg: 'legL',
+  rightLeg: 'legR',
+};
+
+/** Joints in model space: shoulders for the arms, hips for the legs. */
+const PIVOTS: Record<PartId, [number, number, number]> = {
+  core: [0, 0, 0],
+  armL: [13, 0, 17.5],
+  armR: [-13, 0, 17.5],
+  legL: [5.5, 0, -6],
+  legR: [-5.5, 0, -6],
+};
+
+export interface Part {
+  /** Geometry with one draw group per region (material index = REGIONS index), centred on the joint. */
+  geometry: THREE.BufferGeometry;
+  /** Joint position in the astronaut's local space. */
+  pivot: THREE.Vector3;
+}
+
+const X_AXIS = new THREE.Vector3(1, 0, 0);
+
+/** Model space → astronaut local space: y up, facing +z, centred, `height` tall. */
+function transformFor(height: number, bounds: THREE.Box3) {
+  const centre = bounds.getCenter(new THREE.Vector3());
+  const s = height / bounds.getSize(new THREE.Vector3()).z;
+  return {
+    geometry(g: THREE.BufferGeometry) {
+      g.translate(-centre.x, -centre.y, -centre.z);
+      g.rotateX(-Math.PI / 2);
+      g.scale(s, s, s);
+      return g;
+    },
+    point([x, y, z]: [number, number, number]) {
+      return new THREE.Vector3(x - centre.x, y - centre.y, z - centre.z).applyAxisAngle(X_AXIS, -Math.PI / 2).multiplyScalar(s);
+    },
+  };
+}
+
+export function orient(g: THREE.BufferGeometry, height: number, bounds: THREE.Box3): THREE.BufferGeometry {
+  return transformFor(height, bounds).geometry(g);
+}
+
+export function regionParts(src: THREE.BufferGeometry, height: number, bounds: THREE.Box3): Record<PartId, Part> {
   const g = src.index ? src.toNonIndexed() : src;
   const pos = g.getAttribute('position');
   const tris = pos.count / 3;
@@ -52,37 +104,36 @@ export function regionGeometry(src: THREE.BufferGeometry, height: number, bounds
     buckets[REGIONS.indexOf(regionAt(cx / 3, cy / 3, cz / 3))].push(t);
   }
 
-  const out = new THREE.BufferGeometry();
-  for (const name of Object.keys(g.attributes)) {
-    const a = g.getAttribute(name);
-    const size = a.itemSize;
-    const arr = new Float32Array(a.count * size);
-    let o = 0;
-    for (const bucket of buckets) {
-      for (const t of bucket) {
-        for (let v = 0; v < 3; v++) {
-          for (let k = 0; k < size; k++) arr[o++] = a.getComponent(3 * t + v, k);
+  const tf = transformFor(height, bounds);
+  const parts = {} as Record<PartId, Part>;
+  for (const part of PART_IDS) {
+    const regionIdx = REGIONS.map((r, i) => (PART_OF[r] === part ? i : -1)).filter((i) => i >= 0);
+    const out = new THREE.BufferGeometry();
+    for (const name of Object.keys(g.attributes)) {
+      const a = g.getAttribute(name);
+      const size = a.itemSize;
+      const count = regionIdx.reduce((n, i) => n + buckets[i].length * 3, 0);
+      const arr = new Float32Array(count * size);
+      let o = 0;
+      for (const i of regionIdx) {
+        for (const t of buckets[i]) {
+          for (let v = 0; v < 3; v++) {
+            for (let k = 0; k < size; k++) arr[o++] = a.getComponent(3 * t + v, k);
+          }
         }
       }
+      out.setAttribute(name, new THREE.BufferAttribute(arr, size));
     }
-    out.setAttribute(name, new THREE.BufferAttribute(arr, size));
+    let start = 0;
+    for (const i of regionIdx) {
+      out.addGroup(start, buckets[i].length * 3, i);
+      start += buckets[i].length * 3;
+    }
+    tf.geometry(out);
+    const pivot = tf.point(PIVOTS[part]);
+    out.translate(-pivot.x, -pivot.y, -pivot.z);
+    out.computeBoundingSphere();
+    parts[part] = { geometry: out, pivot };
   }
-  let start = 0;
-  buckets.forEach((bucket, i) => {
-    out.addGroup(start, bucket.length * 3, i);
-    start += bucket.length * 3;
-  });
-  return orient(out, height, bounds);
-}
-
-/** Rotates model space (z up, facing -y) to world space (y up, facing +z), centres and scales. */
-export function orient(g: THREE.BufferGeometry, height: number, bounds: THREE.Box3): THREE.BufferGeometry {
-  const centre = bounds.getCenter(new THREE.Vector3());
-  const size = bounds.getSize(new THREE.Vector3());
-  const s = height / size.z;
-  g.translate(-centre.x, -centre.y, -centre.z);
-  g.rotateX(-Math.PI / 2);
-  g.scale(s, s, s);
-  g.computeBoundingSphere();
-  return g;
+  return parts;
 }
