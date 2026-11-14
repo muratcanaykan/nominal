@@ -168,7 +168,7 @@ export function CabinScreen({
         </AnimatePresence>
       </div>
 
-      {locations === '3d' ? <CabinView3D fallback={map} foreground={foreground} /> : map}
+      {locations === '3d' ? <CabinView3D fallback={map} foreground={foreground} viewer={viewer} /> : map}
 
       <ul className="cabin__crew">
         {crew.map((a) => {

@@ -16,6 +16,15 @@ import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './hea
 export const DEMO_PIN = '2468';
 const UNLOCK_KEY = 'nominal:cmo';
 
+/** Remembers for this browser session that the demo PIN was entered. */
+export function markUnlocked() {
+  try {
+    sessionStorage.setItem(UNLOCK_KEY, '1');
+  } catch {
+    /* storage unavailable */
+  }
+}
+
 export function readUnlocked() {
   try {
     return sessionStorage.getItem(UNLOCK_KEY) === '1';
@@ -30,11 +39,7 @@ export function PinGate({ onUnlock }: { onUnlock: () => void }) {
   function submit(e: FormEvent) {
     e.preventDefault();
     if (pin === DEMO_PIN) {
-      try {
-        sessionStorage.setItem(UNLOCK_KEY, '1');
-      } catch {
-        /* storage unavailable */
-      }
+      markUnlocked();
       onUnlock();
     } else setWrong(true);
   }

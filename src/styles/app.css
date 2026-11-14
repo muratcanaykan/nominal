@@ -2800,3 +2800,112 @@ html {
     max-height: 62%;
   }
 }
+
+.hcard__reveal {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  font: inherit;
+  text-align: left;
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--line));
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+.hcard__reveal:hover {
+  border-color: var(--accent);
+}
+
+.hcard__reveal .ico {
+  width: 18px;
+  height: 18px;
+  color: var(--accent);
+}
+
+.hcard__reveal span {
+  display: grid;
+  gap: 1px;
+}
+
+.hcard__reveal strong {
+  font-size: 13px;
+}
+
+.hcard__reveal small {
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.hcard__pin {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.hcard__pin label {
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.hcard__pin div {
+  display: flex;
+  gap: 6px;
+}
+
+.hcard__pin input {
+  width: 90px;
+  height: 34px;
+  font: 700 16px var(--font-num);
+  letter-spacing: 0.3em;
+  text-align: center;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.hcard__pin button {
+  padding: 0 14px;
+  font: 700 12px var(--font-ui);
+  color: var(--on-alert);
+  background: var(--accent);
+  border: 0;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.hcard__pin-error {
+  font-size: 11px;
+  color: var(--l3);
+}
+
+.hcard__shown {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 11px;
+  color: var(--l1);
+  background: color-mix(in srgb, var(--l1) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--l1) 40%, transparent);
+  border-radius: 10px;
+}
+
+.hcard__shown button {
+  flex: none;
+  padding: 3px 10px;
+  font: 700 11px var(--font-ui);
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  cursor: pointer;
+}
