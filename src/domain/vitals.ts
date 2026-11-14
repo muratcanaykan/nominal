@@ -222,7 +222,7 @@ export const VITALS: Record<VitalId, VitalDef> = {
     confirm: { kind: 'fingerstick' },
     info: {
       what: 'Blood glucose from a continuous glucose monitor (CGM) patch, updated every few minutes.',
-      why: 'Spaceflight can reduce insulin sensitivity, and meals are easy to delay on busy mission days. In NASA data from the Inspiration4 crew, all four crew members had higher fasting glucose the day after landing than before flight.',
+      why: 'Spaceflight can reduce insulin sensitivity, and meals are easy to delay on busy mission days. In NASA data from a commercial spaceflight crew (NASA OSDR), all four crew members had higher fasting glucose the day after landing than before flight.',
       actions: {
         0: 'No action needed.',
         1: 'Confirm with a fingerstick test. If low, take fast-acting carbohydrate. If high, drink water and log your last meal.',

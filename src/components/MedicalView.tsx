@@ -92,7 +92,7 @@ function CrewCard({ s, state, now, focused }: { s: Snapshot; state: RoomState | 
         <VitalTiles s={s} state={state} now={now} />
       </div>
       <p className="cmo-ref">
-        Glucose baseline from real data: anonymised Inspiration4 crew member {a.osdrSubject}, pre-flight fasting mean{' '}
+        Glucose baseline from real data: anonymised commercial spaceflight crew member {a.osdrSubject}, pre-flight fasting mean{' '}
         {Math.round(subject.preflightMean)} mg/dL, {subject.dayAfterLanding} mg/dL the day after landing (NASA OSDR{' '}
         {OSDR_GLUCOSE.accession}).
       </p>
@@ -142,7 +142,7 @@ export function SpaceWeatherPanel({ state, now }: { state: RoomState | undefined
       )}
       {weather && (
         <p className="panel__hint">
-          Source: NASA DONKI via api.nasa.gov · updated {formatDay(weather.fetchedAt)}
+          Source: NASA DONKI (CCMC DONKI API) · updated {formatDay(weather.fetchedAt)}
           {weather.live ? '' : ' (saved snapshot)'}
         </p>
       )}

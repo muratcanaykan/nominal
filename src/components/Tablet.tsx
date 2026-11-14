@@ -98,7 +98,7 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
         <section className="tablet__section">
           <h3>About my data</h3>
           <p>
-            Glucose baseline: {Math.round(subject.preflightMean)} mg/dL fasting before flight, from anonymised Inspiration4 crew
+            Glucose baseline: {Math.round(subject.preflightMean)} mg/dL fasting before flight, from anonymised commercial spaceflight crew
             member {a.osdrSubject} (NASA OSDR {OSDR_GLUCOSE.accession}).
           </p>
           <p>Only you see this tablet view. Trends show the last 5 minutes; the shaded band is the nominal range.</p>

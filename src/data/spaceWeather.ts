@@ -1,4 +1,4 @@
-// Space weather from NASA DONKI (via api.nasa.gov).
+// Space weather from NASA DONKI (CCMC DONKI API, where DONKI moved on 30 September 2026; no API key needed).
 // A snapshot is fetched at build time (scripts/fetch-donki.mjs → /data/donki.json); the browser then tries to refresh
 // it live, so the demo shows current events even weeks after the last deploy.
 
@@ -55,7 +55,7 @@ async function fetchLive(): Promise<SpaceWeather> {
   const start = new Date(end.getTime() - 30 * DAY);
   const day = (d: Date) => d.toISOString().slice(0, 10);
   const get = async (path: string) => {
-    const res = await fetch(`https://api.nasa.gov/DONKI/${path}&api_key=DEMO_KEY`, { signal: AbortSignal.timeout(8000) });
+    const res = await fetch(`https://ccmc.gsfc.nasa.gov/DONKI-API/get/${path}`, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     return res.json();
   };
@@ -64,7 +64,7 @@ async function fetchLive(): Promise<SpaceWeather> {
     get(`SEP?startDate=${day(start)}&endDate=${day(end)}`),
   ]);
   return {
-    source: 'NASA DONKI (api.nasa.gov)',
+    source: 'NASA DONKI (ccmc.gsfc.nasa.gov/DONKI-API)',
     fetchedAt: end.toISOString(),
     live: true,
     notifications: (notes ?? []).map((n: Record<string, string>) => ({

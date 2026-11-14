@@ -1,6 +1,7 @@
 {
- "source": "NASA DONKI — Space Weather Database Of Notifications, Knowledge, Information (api.nasa.gov)",
- "fetchedAt": "2026-11-14T08:19:28.027Z",
+ "source": "NASA DONKI — Space Weather Database Of Notifications, Knowledge, Information (ccmc.gsfc.nasa.gov/DONKI-API)",
+ "fetchedAt": "2026-11-14T20:30:59.455Z",
+ "via": "ccmc.gsfc.nasa.gov/DONKI-API",
  "notifications": [
   {
    "type": "RBE",

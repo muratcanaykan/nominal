@@ -50,16 +50,21 @@ that helps astronauts assess their own health and guides them on what to do.
 - A deterministic simulator generates indicator values from time, so every screen shows the same numbers.
 - Firebase Realtime Database syncs user actions (help requests, acknowledgements, mood check-ins) between devices in
   real time. Each demo session is a separate room.
+- Prototype versus a real vehicle: in a spacecraft the watches, tablets and cabin screen would share data over the
+  vehicle's own network and keep working without a link to Earth. Firebase stands in for that network in this web demo,
+  and all physiological data is simulated.
 
 ## NASA data & resources used
 
 - NASA Human Research Program — [5 Hazards of Human Spaceflight](https://www.nasa.gov/hrp/hazards/)
 - NASA Human Research Program — [Risks of Human Spaceflight](https://www.nasa.gov/hrp/risks/)
 - NASA Human Research Program — [Ongoing HRP Research in Space](https://www.nasa.gov/hrp/ongoing-hrp-research/)
-- NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information) via [api.nasa.gov](https://api.nasa.gov/)
-  — a solar energetic particle event in the last 72 hours raises a radiation advisory on every screen, and recent
-  space weather events are listed in the medical officer view. Data is saved at build time
-  ([`scripts/fetch-donki.mjs`](scripts/fetch-donki.mjs)) and refreshed live in the browser.
+- NASA DONKI (Space Weather Database Of Notifications, Knowledge, Information) via the
+  [CCMC DONKI API](https://ccmc.gsfc.nasa.gov/tools/DONKI/), where DONKI moved on 30 September 2026 (the old
+  [api.nasa.gov](https://api.nasa.gov/) address is the fallback) — a solar energetic particle event in the last 72 hours
+  raises a radiation advisory on every screen, and recent space weather events are listed in the medical officer view.
+  Data is saved at build time ([`scripts/fetch-donki.mjs`](scripts/fetch-donki.mjs)) and refreshed live in the
+  browser.
 - NASA Open Science Data Repository — [OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575), Inspiration4
   Comprehensive Metabolic Panel. Each simulated astronaut's glucose baseline comes from the real pre-flight glucose of
   one anonymised Inspiration4 crew member; the medical officer view shows that baseline and the post-landing value
@@ -77,8 +82,49 @@ that helps astronauts assess their own health and guides them on what to do.
 
 ## Other references
 
-Threshold references are listed next to each indicator in [`src/domain/vitals.ts`](src/domain/vitals.ts).
-Thresholds are prototype values and are not clinically validated.
+### Health thresholds and background
+
+Thresholds are prototype values and are not clinically validated. Each indicator lists its sources next to it in
+[`src/domain/vitals.ts`](src/domain/vitals.ts):
+
+- American Heart Association — normal resting heart rate (60–100 bpm) and
+  [Understanding Blood Pressure Readings](https://www.heart.org/en/health-topics/high-blood-pressure/understanding-blood-pressure-readings).
+- Mayo Clinic — [Hypoxemia](https://www.mayoclinic.org/symptoms/hypoxemia/basics/definition/sym-20050930) (normal
+  pulse oximetry 95–100 %), fever and hypothermia thresholds.
+- Stahn A.C. et al., "Increased core body temperature in astronauts during long-duration space missions",
+  Scientific Reports 7, 16180 (2017).
+- American Diabetes Association — hypoglycaemia levels 1 and 2 (below 70 and 54 mg/dL).
+- Battelino T. et al., "Clinical Targets for Continuous Glucose Monitoring Data Interpretation", Diabetes Care 42(8),
+  2019.
+- Watson N.F. et al., "Recommended Amount of Sleep for a Healthy Adult", Sleep 38(6), 2015.
+- NASA Human Research Program — Risk of Injury and Compromised Performance Due to EVA Operations (glove and shoulder
+  injuries), Risk of Decompression Sickness, and behavioural conditions (Risks of Human Spaceflight).
+- Heus R., Daanen H.A.M., Havenith G., "Physiological criteria for functioning of hands in the cold: a review",
+  Applied Ergonomics 26(1), 1995.
+- Anderson A. et al., in-suit sensor systems for characterising human–spacesuit interaction, International Conference
+  on Environmental Systems, 2015.
+- NASA-STD-3001 Volume 2 — NASA Space Flight Human-System Standard (carbon dioxide limits).
+- Law J. et al., carbon dioxide levels and reported headaches on the International Space Station, Journal of
+  Occupational and Environmental Medicine, 2014.
+- NASA mishap investigation report on water entering a spacesuit helmet during a 2013 spacewalk.
+
+### Software, libraries and fonts
+
+| Used for | Project | Licence |
+| --- | --- | --- |
+| User interface | [React](https://react.dev/) and React DOM 19 | MIT |
+| Page routes | [React Router](https://reactrouter.com/) 8 | MIT |
+| Animations | [Motion](https://motion.dev/) 14 | MIT |
+| 3D view | [three.js](https://threejs.org/), [React Three Fiber](https://r3f.docs.pmnd.rs/), [drei](https://github.com/pmndrs/drei), [@react-three/postprocessing](https://github.com/pmndrs/react-postprocessing) | MIT |
+| 3D glow effects | [postprocessing](https://github.com/pmndrs/postprocessing) | Zlib |
+| Live sync and anonymous sign-in | [Firebase JavaScript SDK](https://firebase.google.com/) (Realtime Database, Authentication) | Apache-2.0 |
+| QR codes | [qrcode](https://github.com/soldair/node-qrcode) | MIT |
+| Build and tests | [Vite](https://vite.dev/), [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react), [Vitest](https://vitest.dev/) | MIT |
+| Language | [TypeScript](https://www.typescriptlang.org/) | Apache-2.0 |
+| Preparing the 3D model (one-off) | [glTF Transform](https://gltf-transform.dev/), [draco3dgltf](https://github.com/google/draco) | MIT, Apache-2.0 |
+| Typeface | [Manrope](https://fonts.google.com/specimen/Manrope) via Google Fonts | SIL Open Font License 1.1 |
+
+Hosting: Cloudflare Pages (website) and Firebase (live sync).
 
 ## Use of AI
 
