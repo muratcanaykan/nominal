@@ -9,7 +9,6 @@ import { CREW, PROFILES, type AstronautId, type ProfileId } from '../domain/crew
 import { activeScenario, type ScenarioId } from '../domain/scenarios';
 import { useRoomId } from '../lib/RoomRoute';
 import { useNow, useRoom, useStore } from '../lib/useRoom';
-import { useStyledPath, useVariant } from '../lib/variant';
 
 const SCENARIO_BUTTONS: { id: ScenarioId; label: string; level: string }[] = [
   { id: 'nominal', label: 'Nominal', level: 'lvl-0' },
@@ -120,7 +119,6 @@ function MissionPanel() {
 }
 
 function ScreenLinks({ roomId }: { roomId: string }) {
-  const styled = useStyledPath();
   const origin = window.location.origin;
   const screens = [
     { path: `/r/${roomId}/cabin`, title: 'Cabin screen', sub: 'Shared display in the vehicle' },
@@ -128,17 +126,17 @@ function ScreenLinks({ roomId }: { roomId: string }) {
     ...CREW.map((a) => ({ path: `/r/${roomId}/watch/${a.id}`, title: `Watch · ${a.callsign}`, sub: a.name })),
   ];
   return (
-    <div className="panel">
+    <div className="panel" id="screens">
       <h2 className="panel__title">Open the screens on other devices</h2>
       <p className="panel__hint">Scan a code with a phone to wear the watch, or open the cabin screen on a second computer.</p>
       <div className="screen-grid">
         {screens.map((s) => (
           <div key={s.path} className="screen-card">
-            <Qr url={origin + styled(s.path)} label={s.title} />
+            <Qr url={origin + s.path} label={s.title} />
             <div className="screen-card__text">
               <strong>{s.title}</strong>
               <span>{s.sub}</span>
-              <Link to={styled(s.path)} target="_blank" rel="noopener">
+              <Link to={s.path} target="_blank" rel="noopener">
                 Open in new tab
               </Link>
             </div>
@@ -149,9 +147,56 @@ function ScreenLinks({ roomId }: { roomId: string }) {
   );
 }
 
+/** Explains the three screens and walks a first-time visitor (or a judge) through one scenario. */
+function Guide() {
+  return (
+    <details className="panel guide" open>
+      <summary className="panel__title">How this demo works</summary>
+      <div className="guide__devices">
+        <div className="guide__device">
+          <strong>Watch</strong>
+          <span>
+            Worn by each astronaut. Shows only that person's own readings, colour-coded alerts, what to do, and a help
+            button. Best opened on a phone.
+          </span>
+        </div>
+        <div className="guide__device">
+          <strong>Cabin screen</strong>
+          <span>
+            The shared display inside the vehicle. Everyone on board can see and use it. It never shows health values:
+            only device status and the alerts that need the crew.
+          </span>
+        </div>
+        <div className="guide__device">
+          <strong>Medical officer</strong>
+          <span>
+            The detailed view for the crew member responsible for care: every value, trends, history and space weather.
+            Opens with the demo PIN 2468.
+          </span>
+        </div>
+      </div>
+      <ol className="guide__steps">
+        <li>
+          Open the cabin screen on a second screen and a watch on your phone (<a href="#screens">QR codes below</a>), or
+          just use the live preview on this page.
+        </li>
+        <li>
+          Press <b>Falling SpO₂</b> for Daniel Okafor. His watch warns him and the medical officer is told; the cabin
+          screen stays private.
+        </li>
+        <li>
+          Press <b>Hypoxia</b>. Now the whole crew sees it on the cabin screen and flight surgeons on Earth are notified.
+        </li>
+        <li>
+          On the cabin screen, press <b>I'm responding</b>. Every screen shows who is on the way.
+        </li>
+      </ol>
+    </details>
+  );
+}
+
 export function Hub() {
   const roomId = useRoomId();
-  const variant = useVariant();
   const now = useNow(250);
   const [focus, setFocus] = useState<AstronautId>('02');
   const [copied, setCopied] = useState(false);
@@ -182,6 +227,7 @@ export function Hub() {
         </button>
       </header>
 
+      <Guide />
       <ScenarioPanel />
 
       <div className="panel">
@@ -196,13 +242,13 @@ export function Hub() {
           </div>
         </div>
         <div className="preview">
-          <WatchFace variant={variant} astronautId={focus} now={now} />
-          <CabinScreen variant={variant} now={now} />
+          <WatchFace astronautId={focus} now={now} />
+          <CabinScreen now={now} />
         </div>
       </div>
 
-      <MissionPanel />
       <ScreenLinks roomId={roomId} />
+      <MissionPanel />
     </main>
   );
 }

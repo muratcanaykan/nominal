@@ -1,4 +1,4 @@
-/* Shared structure for the watch and the cabin screen. Colours and type come from the variant tokens. */
+/* Shared structure for the watch and the cabin screen. Colours and type come from theme.css. */
 
 *,
 *::before,
@@ -926,9 +926,6 @@ button:focus-visible {
   color: var(--l2);
 }
 
-.v-suit .event--advisory::before {
-  background: repeating-linear-gradient(-45deg, #111 0 7px, var(--l2) 7px 14px);
-}
 
 @media (max-width: 640px) {
   .crew {

@@ -7,7 +7,7 @@ import { missionClock, moodDue, snapshot, type Reading } from '../domain/sim';
 import { HAZARDS, LEVEL_NAMES, routingFor, VITALS, type Level, type VitalId } from '../domain/vitals';
 import { useRoom, useStore } from '../lib/useRoom';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
-import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, levelClass, ShortLabel, SignalOffIcon, type Variant } from './bits';
+import { AnimatedNumber, formatAgo, HeartIcon, InfoIcon, levelClass, ShortLabel, SignalOffIcon } from './bits';
 
 const COMPLICATIONS: VitalId[] = ['spo2', 'bodyTemp', 'glucose'];
 
@@ -18,54 +18,15 @@ const VIBRATION: Record<Level, number[]> = {
   3: [500, 200, 500, 200, 500],
 };
 
-function Ring({ variant, fraction }: { variant: Variant; fraction: number }) {
+/** Heart-rate arc around the watch face. */
+function Ring({ fraction }: { fraction: number }) {
   const f = Math.max(0, Math.min(1, fraction));
-  if (variant === 'mission') {
-    const lit = Math.round(f * 60);
-    return (
-      <svg className="ring ring--ticks" viewBox="0 0 100 100" aria-hidden="true">
-        {Array.from({ length: 60 }, (_, i) => {
-          const a = ((i * 6 - 90) * Math.PI) / 180;
-          const major = i % 5 === 0;
-          const r1 = major ? 41.5 : 43.5;
-          return (
-            <line
-              key={i}
-              x1={50 + r1 * Math.cos(a)}
-              y1={50 + r1 * Math.sin(a)}
-              x2={50 + 47.5 * Math.cos(a)}
-              y2={50 + 47.5 * Math.sin(a)}
-              className={i < lit ? 'tick tick--on' : 'tick'}
-              strokeWidth={major ? 1.4 : 0.9}
-            />
-          );
-        })}
-      </svg>
-    );
-  }
-  if (variant === 'glass') {
-    const c = 2 * Math.PI * 44;
-    return (
-      <svg className="ring ring--arc" viewBox="0 0 100 100" aria-hidden="true">
-        <circle cx="50" cy="50" r="44" className="arc-track" />
-        <circle
-          cx="50"
-          cy="50"
-          r="44"
-          className="arc-fill"
-          strokeDasharray={`${f * c} ${c}`}
-          transform="rotate(-90 50 50)"
-        />
-      </svg>
-    );
-  }
-  const lit = Math.round(f * 12);
+  const c = 2 * Math.PI * 44;
   return (
-    <div className="ring ring--blocks" aria-hidden="true">
-      {Array.from({ length: 12 }, (_, i) => (
-        <span key={i} className={i < lit ? 'block block--on' : 'block'} />
-      ))}
-    </div>
+    <svg className="ring ring--arc" viewBox="0 0 100 100" aria-hidden="true">
+      <circle cx="50" cy="50" r="44" className="arc-track" />
+      <circle cx="50" cy="50" r="44" className="arc-fill" strokeDasharray={`${f * c} ${c}`} transform="rotate(-90 50 50)" />
+    </svg>
   );
 }
 
@@ -216,7 +177,7 @@ function Keypad({ onSubmit, onCancel }: { onSubmit: (value: number) => void; onC
   );
 }
 
-export function WatchFace({ variant, astronautId, now }: { variant: Variant; astronautId: AstronautId; now: number }) {
+export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now: number }) {
   const { state } = useRoom();
   const store = useStore();
   const reduce = useReducedMotion();
@@ -258,10 +219,10 @@ export function WatchFace({ variant, astronautId, now }: { variant: Variant; ast
   const askMood = snap.connected && moodDue(state ?? undefined, astronautId, now, MISSION_DAY_OFFSET_MS);
 
   return (
-    <div className={`watch v-${variant} ${levelClass(status)}`}>
+    <div className={`watch ${levelClass(status)}`}>
       <div className="watch__case" ref={scope}>
         <div className="watch__screen">
-          <Ring variant={variant} fraction={snap.connected ? fraction : 0} />
+          <Ring fraction={snap.connected ? fraction : 0} />
 
           <div className="watch__top">
             <span className="watch__callsign">{astronaut.callsign}</span>

@@ -6,7 +6,6 @@ import { newRoomState } from '../domain/room';
 import { FirebaseBackend, firebaseConfigured, ROOM_ID_PATTERN } from './firebase';
 import { RoomStore } from './store';
 import { RoomContext, useRoom } from './useRoom';
-import { useStyledPath, useVariant } from './variant';
 
 export function useRoomId(): string {
   const { roomId = '' } = useParams();
@@ -23,7 +22,6 @@ function Gate({ children }: { children: ReactNode }) {
   const { status, error } = useRoom();
   const roomId = useRoomId();
   const navigate = useNavigate();
-  const styled = useStyledPath();
 
   if (status === 'ready') {
     return (
@@ -53,7 +51,7 @@ function Gate({ children }: { children: ReactNode }) {
         >
           Create room {roomId}
         </button>
-        <Link className="btn-secondary" to={styled('/')}>
+        <Link className="btn-secondary" to="/">
           Start a new demo
         </Link>
       </div>
@@ -74,7 +72,6 @@ function Gate({ children }: { children: ReactNode }) {
 /** Wraps a room page: one store per room id, shared by everything on the page. */
 export function RoomRoute({ children }: { children: ReactNode }) {
   const roomId = useRoomId();
-  const variant = useVariant();
   const valid = ROOM_ID_PATTERN.test(roomId);
   const store = useMemo(() => (valid && firebaseConfigured ? new RoomStore(new FirebaseBackend(roomId)) : null), [roomId, valid]);
 
@@ -86,7 +83,7 @@ export function RoomRoute({ children }: { children: ReactNode }) {
 
   if (!store) {
     return (
-      <div className={`page v-${variant}`}>
+      <div className="page">
         <div className="gate" role="alert">
           <h1>{valid ? 'Live sync is not configured' : `"${roomId}" is not a valid room code`}</h1>
           <Link className="btn-secondary" to="/">
@@ -99,7 +96,7 @@ export function RoomRoute({ children }: { children: ReactNode }) {
 
   return (
     <RoomContext.Provider value={store}>
-      <div className={`page v-${variant}`}>
+      <div className="page">
         <Gate>{children}</Gate>
       </div>
     </RoomContext.Provider>

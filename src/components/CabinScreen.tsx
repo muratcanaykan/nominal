@@ -6,7 +6,7 @@ import { crewSummary, missionClock, type CrewAlert } from '../domain/sim';
 import type { VitalId } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather, type Advisory } from '../data/spaceWeather';
 import { useRoom, useStore } from '../lib/useRoom';
-import { formatAgo, formatDelay, type Variant } from './bits';
+import { formatAgo, formatDelay } from './bits';
 
 const RESPONSE_STEP: Record<VitalId | 'help', string> = {
   spo2: 'Bring the emergency oxygen kit',
@@ -113,7 +113,7 @@ function AdvisoryCard({ advisory, now }: { advisory: Advisory; now: number }) {
   );
 }
 
-export function CabinScreen({ variant, now, viewer = '04' }: { variant: Variant; now: number; viewer?: AstronautId }) {
+export function CabinScreen({ now, viewer = '04' }: { now: number; viewer?: AstronautId }) {
   const { state } = useRoom();
   const summary = crewSummary(state ?? undefined, now);
   const profile = PROFILES[state?.profile ?? 'lunar'];
@@ -132,7 +132,7 @@ export function CabinScreen({ variant, now, viewer = '04' }: { variant: Variant;
       : 'No active crew alerts';
 
   return (
-    <section className={`cabin v-${variant}${n ? ' has-alert' : ''}`} aria-label="Cabin crew status screen">
+    <section className={`cabin${n ? ' has-alert' : ''}`} aria-label="Cabin crew status screen">
       <header className="cabin__bar">
         <div className="cabin__brand">
           <span className="cabin__logo">Nominal</span>

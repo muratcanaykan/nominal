@@ -1,0 +1,95 @@
+/* Nominal theme (Clinical Glass): tokens and the few shape rules that go with them. */
+:root {
+  --bg: #0c1016;
+  --screen: #0d1219;
+  --sheet: #111821;
+  --panel: rgb(255 255 255 / 0.055);
+  --panel-2: rgb(255 255 255 / 0.07);
+  --line: rgb(255 255 255 / 0.11);
+  --text: #f3f6fa;
+  --dim: #9aa8b8;
+  --accent: #7dd3fc;
+  --heart: #fb7185;
+  --l0: #34d399;
+  --l1: #fcd34d;
+  --l2: #fb923c;
+  --l3: #fb5072;
+  --nodata: #94a3b8;
+  --on-alert: #14161a;
+  --event-bg: rgb(251 80 114 / 0.12);
+  --radius: 24px;
+  --radius-sm: 14px;
+  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-num: 'Manrope', system-ui, sans-serif;
+  --font-label: 'Manrope', system-ui, sans-serif;
+  --num-weight: 700;
+}
+
+.watch__case {
+  border-radius: 50%;
+  padding: 7px;
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0.04) 45%, rgb(255 255 255 / 0.12));
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+}
+
+.watch__screen {
+  inset: 7px;
+  border-radius: 50%;
+  background:
+    radial-gradient(110% 80% at 50% 0%, color-mix(in srgb, var(--lvl) 20%, transparent), transparent 65%),
+    var(--screen);
+  transition: background 0.6s;
+}
+
+.arc-track {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.07);
+  stroke-width: 4.5;
+}
+
+.arc-fill {
+  fill: none;
+  stroke: var(--lvl);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease, stroke 0.4s;
+  filter: drop-shadow(0 0 2.5px var(--lvl));
+}
+
+.watch__callsign,
+.watch__clock,
+.watch__unit,
+.comp__label {
+  letter-spacing: 0.04em;
+}
+
+.cabin {
+  backdrop-filter: blur(18px);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.35);
+}
+
+.cabin__status {
+  border-left-width: 1px;
+  box-shadow: inset 4px 0 0 var(--l0);
+}
+
+.cabin__status.is-alert {
+  box-shadow: inset 4px 0 0 var(--l3);
+}
+
+.crew__dot {
+  box-shadow: 0 0 10px var(--l0);
+}
+
+.crew.is-alert .crew__dot {
+  box-shadow: 0 0 10px var(--l3);
+}
+
+.event {
+  backdrop-filter: blur(10px);
+}
+
+.btn-claim,
+.btn-ghost {
+  border-radius: 99px;
+}

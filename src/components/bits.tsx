@@ -2,8 +2,6 @@ import { animate, motion, useMotionValue, useTransform } from 'motion/react';
 import { useEffect } from 'react';
 import type { Status } from '../domain/vitals';
 
-export type Variant = 'mission' | 'glass' | 'suit';
-
 export const levelClass = (s: Status) => `lvl-${s}`;
 
 /** A number that glides to its new value instead of jumping. */

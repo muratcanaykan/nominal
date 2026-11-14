@@ -1,4 +1,4 @@
-/* Page layouts: landing, demo control, full-screen watch/cabin, medical officer. Colours come from variant tokens. */
+/* Page layouts: landing, demo control, full-screen watch/cabin, medical officer. Colours come from theme.css. */
 
 .page {
   min-height: 100vh;
@@ -9,7 +9,8 @@
     max(16px, env(safe-area-inset-left, 0px));
 }
 
-.v-glass.page {
+.page {
+  /* soft glows behind every page */
   background:
     radial-gradient(60% 40% at 10% 0%, rgb(52 211 153 / 0.07), transparent 70%),
     radial-gradient(50% 50% at 100% 30%, rgb(125 211 252 / 0.07), transparent 70%),
@@ -48,8 +49,8 @@
   border: 1px solid var(--line);
 }
 
-.v-glass .btn-primary,
-.v-glass .btn-secondary {
+.btn-primary,
+.btn-secondary {
   border-radius: 99px;
 }
 
@@ -815,4 +816,60 @@
 .wx-list a {
   font-size: 13px;
   color: var(--accent);
+}
+
+/* ---------- Demo guide ---------- */
+
+.guide summary {
+  cursor: pointer;
+  list-style-position: outside;
+}
+
+.guide[open] summary {
+  margin-bottom: 4px;
+}
+
+.guide__devices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.guide__device {
+  display: grid;
+  gap: 6px;
+  align-content: start;
+  padding: 14px 16px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.guide__device span {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+.guide__steps {
+  margin: 0;
+  padding-left: 22px;
+  display: grid;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.guide__steps a {
+  color: var(--accent);
+}
+
+@media (max-width: 760px) {
+  .guide__devices {
+    grid-template-columns: 1fr;
+  }
+}
+
+#screens {
+  scroll-margin-top: 16px;
 }

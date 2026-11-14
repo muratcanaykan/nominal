@@ -2,12 +2,9 @@ import { useState, type FormEvent } from 'react';
 import { useNavigate } from 'react-router';
 import { newRoomId, ROOM_ID_PATTERN } from '../lib/firebase';
 import { createRoom } from '../lib/RoomRoute';
-import { useStyledPath, useVariant } from '../lib/variant';
 
 export function Landing() {
-  const variant = useVariant();
   const navigate = useNavigate();
-  const styled = useStyledPath();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
@@ -18,7 +15,7 @@ export function Landing() {
     const id = newRoomId();
     try {
       await createRoom(id);
-      navigate(styled(`/r/${id}`));
+      navigate(`/r/${id}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
     } finally {
@@ -33,11 +30,11 @@ export function Landing() {
       setError('Room codes have six letters or digits, for example K7Q2XM.');
       return;
     }
-    navigate(styled(`/r/${id}`));
+    navigate(`/r/${id}`);
   }
 
   return (
-    <div className={`page v-${variant}`}>
+    <div className="page">
       <main className="landing">
         <p className="landing__eyebrow">Crew health monitor · Prototype</p>
         <h1 className="landing__title">Nominal</h1>
