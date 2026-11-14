@@ -97,6 +97,18 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
 
   useEffect(() => () => window.clearTimeout(openTimer.current), []);
 
+  // The page behind must not scroll while the cabin window (or the page-covering full screen) is open.
+  const lockScroll = screenOpen || coverFull;
+  useEffect(() => {
+    if (!lockScroll) return;
+    const root = document.documentElement;
+    const previous = root.style.overflow;
+    root.style.overflow = 'hidden';
+    return () => {
+      root.style.overflow = previous;
+    };
+  }, [lockScroll]);
+
   useEffect(() => {
     const el = view.current;
     if (!el) return;

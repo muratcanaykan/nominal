@@ -1802,6 +1802,7 @@
   backdrop-filter: blur(4px);
   animation: sim-overlay-in 0.35s ease-out;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sim3d__overlay-inner {
@@ -2096,6 +2097,11 @@
 }
 
 /* ---------- Scrollbars in the theme colours ---------- */
+
+html {
+  /* Keeps the layout from shifting when page scrolling is locked under a window. */
+  scrollbar-gutter: stable;
+}
 
 * {
   scrollbar-width: thin;
