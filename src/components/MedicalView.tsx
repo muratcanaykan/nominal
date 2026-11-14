@@ -5,6 +5,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, OSDR_GLUCOSE, PROFILES, type AstronautId } from '../domain/crew';
 import { locationLabel } from '../domain/locations';
 import type { RoomState } from '../domain/room';
+import { forecast, forecastText } from '../domain/forecast';
 import { crewSummary, MOOD_MISSED_MS, moodPromptStart, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
@@ -183,6 +184,9 @@ export function MedicalOverview({
       }
     }
     if (state?.help?.[a.id]) out.push({ id: a.id, text: 'Help requested', level: 'lvl-3' });
+    // Heads-up when a reading is heading for warning or critical.
+    const fc = s.connected ? forecast(state, a.id, now) : null;
+    if (fc && fc.level >= 2) out.push({ id: a.id, text: `Early warning: ${forecastText(fc)}`, level: levelClass(fc.level) });
     const moodSince = moodPromptStart(state, a.id, now, MISSION_DAY_OFFSET_MS);
     if (s.connected && moodSince !== null && now - moodSince >= MOOD_MISSED_MS) {
       out.push({ id: a.id, text: `Mood check-in not answered (${formatAgo(now - moodSince)})`, level: 'lvl-1' });

@@ -17,7 +17,9 @@ export type ScenarioId =
   | 'shoulderPressure'
   | 'helmetCO2'
   | 'helmetWater'
-  | 'kneePain';
+  | 'kneePain'
+  | 'slowSpo2'
+  | 'slowCO2';
 
 export interface Scenario {
   id: ScenarioId;
@@ -28,6 +30,8 @@ export interface Scenario {
   report?: { jointPain: { value: number; site: PainSite } };
   /** Needs the spacesuit (airlock or spacewalk). */
   suit?: boolean;
+  /** How long the readings take to reach their targets (default 4 s); slow changes show the early warning. */
+  rampMs?: number;
 }
 
 export const SCENARIOS: Record<ScenarioId, Scenario> = {
@@ -43,6 +47,8 @@ export const SCENARIOS: Record<ScenarioId, Scenario> = {
   helmetCO2: { id: 'helmetCO2', label: 'Helmet CO₂ rising', targets: { helmetCO2: 11, heartRate: 108 }, suit: true },
   helmetWater: { id: 'helmetWater', label: 'Water in helmet', targets: { helmetWater: 140, heartRate: 118 }, suit: true },
   kneePain: { id: 'kneePain', label: 'Knee pain report', report: { jointPain: { value: 4, site: 'rightKnee' } } },
+  slowSpo2: { id: 'slowSpo2', label: 'Oxygen slowly dropping', targets: { spo2: 86, heartRate: 112 }, rampMs: 150_000 },
+  slowCO2: { id: 'slowCO2', label: 'Helmet CO₂ slowly rising', targets: { helmetCO2: 13 }, rampMs: 150_000, suit: true },
 };
 
 const RAMP_MS = 4000;
@@ -77,7 +83,7 @@ export function scenarioPatch(id: AstronautId, scenario: ScenarioId, now: number
   if (s.targets) {
     const overrides: Record<string, unknown> = {};
     for (const [vital, target] of Object.entries(s.targets)) {
-      overrides[vital] = { target, startAt: now, rampMs: RAMP_MS };
+      overrides[vital] = { target, startAt: now, rampMs: s.rampMs ?? RAMP_MS };
     }
     patch[`overrides/${id}`] = overrides;
   }

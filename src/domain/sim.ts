@@ -93,7 +93,7 @@ export function baseValue(id: AstronautId, vital: VitalId, t: number, state?: Ro
 const SUIT_BASE = { fingerTempL: 30.5, fingerTempR: 29.8, helmetCO2: 2.2, helmetWater: 0, shoulderL: 3.2, shoulderR: 3.6, jointPain: 0 };
 
 /** The value an indicator sits at before any scenario, used to keep natural variation on top of a scenario target. */
-function centreValue(id: AstronautId, vital: VitalId): number {
+export function centreValue(id: AstronautId, vital: VitalId): number {
   const b = CREW_BY_ID[id].baseline;
   switch (vital) {
     case 'bloodPressure':

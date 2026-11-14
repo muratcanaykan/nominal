@@ -7,6 +7,7 @@ import type { BodyRegion } from '../domain/body';
 import { CREW_BY_ID, type AstronautId } from '../domain/crew';
 import { isSuited, locationLabel } from '../domain/locations';
 import { responseSteps } from '../domain/response';
+import { forecast, forecastText } from '../domain/forecast';
 import { crewSummary, snapshot } from '../domain/sim';
 import { LEVEL_NAMES, VITAL_IDS, VITALS, type VitalId } from '../domain/vitals';
 import type { RoomState } from '../domain/room';
@@ -105,6 +106,10 @@ function FullCard({
   return (
     <aside className="hcard" aria-label={`Health of ${CREW_BY_ID[id].name}`}>
       <CardHead id={id} status={status} statusLevel={levelClass(s.status)} onClose={onClose} />
+      {(() => {
+        const fc = s.connected ? forecast(st, id, now) : null;
+        return fc ? <p className={`hcard__trend ${levelClass(fc.level)}`}>Early warning · {forecastText(fc)}</p> : null;
+      })()}
       {region && onRegion ? (
         <RegionDetails region={region} s={s} state={st} onClose={() => onRegion(null)} />
       ) : (

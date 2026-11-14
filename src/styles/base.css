@@ -1130,3 +1130,34 @@ button:focus-visible {
   border-radius: 99px;
   cursor: pointer;
 }
+
+/* Early warning on the watch: a small pill under the clock */
+.watch__trend {
+  position: absolute;
+  top: 27%;
+  left: 50%;
+  z-index: 2;
+  transform: translateX(-50%);
+  padding: 0.6cqw 2.6cqw;
+  font-family: var(--font-label);
+  font-size: 3.3cqw;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--lvl);
+  background: color-mix(in srgb, var(--lvl) 14%, var(--screen));
+  border: 1px solid color-mix(in srgb, var(--lvl) 55%, transparent);
+  border-radius: 99px;
+  animation: watch-trend 2s ease-in-out infinite;
+}
+
+@keyframes watch-trend {
+  50% {
+    box-shadow: 0 0 2cqw color-mix(in srgb, var(--lvl) 45%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .watch__trend {
+    animation: none;
+  }
+}

@@ -6,6 +6,7 @@ import { PAIN_SITE_IDS, PAIN_SITES, type PainSite } from '../domain/body';
 import { CREW_BY_ID, MISSION_DAY_OFFSET_MS, type AstronautId } from '../domain/crew';
 import { missionClock, MOOD_MISSED_MS, MOOD_REMIND_MS, moodPromptStart, snapshot, type Reading } from '../domain/sim';
 import { HAZARDS, LEVEL_NAMES, routingFor, VITALS, type Level, type VitalId } from '../domain/vitals';
+import { forecast, formatEta } from '../domain/forecast';
 import { isEva } from '../domain/locations';
 import { useRoom, useStore } from '../lib/useRoom';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
@@ -306,6 +307,8 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
     if (!reduce && scope.current) animateCase(scope.current, { x: [0, -5, 5, -3, 3, 0] }, { duration: 0.45 });
   }, [remindKey, reduce, scope, animateCase]);
 
+  // Early warning: a reading heading for a worse level soon.
+  const fc = snap.connected ? forecast(state ?? undefined, astronautId, now) : null;
   const confirm = alert ? VITALS[alert.id].confirm : undefined;
   const bannerNote = alert ? readingNote(alert, state, astronautId) : '';
   const fraction = (hr.value - 40) / (180 - 40);
@@ -321,6 +324,13 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
             <span className="watch__callsign">{astronaut.callsign}</span>
             <span className="watch__clock">{missionClock(state ?? undefined, now, MISSION_DAY_OFFSET_MS)}</span>
           </div>
+
+          {fc && !alert && !showRad && (
+            <div className={`watch__trend ${levelClass(fc.level)}`} role="status">
+              {fc.direction === 'down' ? '↘' : '↗'} <ShortLabel text={VITALS[fc.vital].short} /> · {LEVEL_NAMES[fc.level]} in{' '}
+              {formatEta(fc.inMs).replace('about ', '~')}
+            </div>
+          )}
 
           <div className={`watch__hero ${levelClass(snap.connected ? hr.level : 'nodata')}`}>
             <HeartIcon bpm={hr.value} still={!snap.connected || !!reduce} />
@@ -367,6 +377,11 @@ export function WatchFace({ astronautId, now }: { astronautId: AstronautId; now:
                   </span>
                   {alert.pending && <em>{confirm?.kind === 'symptom' ? confirm.question : 'Confirm with a fingerstick test'}</em>}
                   {routingFor(alert.level).cmo && <em>Medical officer notified</em>}
+                  {fc && fc.level > alert.level && (
+                    <em>
+                      Trend: {LEVEL_NAMES[fc.level]} in {formatEta(fc.inMs)}
+                    </em>
+                  )}
                 </div>
                 <div className="banner__buttons">
                   {alert.pending && confirm?.kind === 'symptom' ? (

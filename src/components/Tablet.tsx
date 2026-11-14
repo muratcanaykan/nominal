@@ -4,6 +4,7 @@
 import { memo, useEffect, useRef, useState } from 'react';
 import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, OSDR_GLUCOSE, type AstronautId } from '../domain/crew';
 import { DUTY_HINTS, DUTY_LABELS, dutyStatus, seesCrewStatus, TABLET_VIEW_LABELS, tabletViews, type DutyStatus, type TabletView } from '../domain/roles';
+import { forecast, forecastText } from '../domain/forecast';
 import { isEva, locationLabel } from '../domain/locations';
 import type { RoomState } from '../domain/room';
 import { crewSummary, missionClock, snapshot } from '../domain/sim';
@@ -71,6 +72,19 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
           {s.connected && s.worst > 0 && <small>Who is told: {whoIsTold(s.worst)}</small>}
         </div>
       </section>
+
+      {(() => {
+        const fc = s.connected ? forecast(state, id, now) : null;
+        return fc ? (
+          <section className={`tablet-status tablet-status--trend ${levelClass(fc.level)}`}>
+            <span className="tablet-status__badge">Early warning</span>
+            <div className="tablet-status__text">
+              <strong>{forecastText(fc)}</strong>
+              <p>{VITALS[fc.vital].info.actions[Math.max(1, fc.level - 1) as 1 | 2]} Acting now can stop it from getting worse.</p>
+            </div>
+          </section>
+        ) : null;
+      })()}
 
       {advisory && (
         <section className={`tablet-status ${isEva(state, id) ? 'lvl-2' : 'lvl-1'}`}>

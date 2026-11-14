@@ -40,10 +40,25 @@ that helps astronauts assess their own health and guides them on what to do.
   Arms and legs move (a help call waves, a cold hand shakes), data pulses show telemetry going to the vehicle, warnings
   going to the medical officer and critical alerts travelling to Earth with the mission's signal delay. The cabin
   screen hangs inside the habitat module; clicking it opens the live cabin screen. The view has a full-screen mode.
+- **Early warning** — when a reading drifts steadily away from the crew member's own baseline toward the next alert
+  level, the watch, the tablet and the medical officer see how soon it will get there (for example "Blood oxygen
+  falling · Warning in about 1 min"), so the crew can act before the alert. Normal sensor noise does not trigger it.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
 - **Live demo** — pick a crew member (the profile button at the bottom left) to see the mission through their devices: the cabin screen, the crew's watches and
   that person's tablet. Scenarios change the simulated readings; every open screen updates live.
+
+## Future work
+
+- **Suit voice link** — the watch microphone inside the suit carries the astronaut's voice to the cabin screen as
+  live speech and text. Saying "help" or "mayday" starts a help call hands-free, which matters in pressurised gloves
+  that make touching a watch hard.
+- **Radiation dose** — a personal dosimeter per crew member, adding up dose during spacewalks and solar particle events
+  against mission limits.
+- **Messages to Earth** — reports to flight surgeons whose replies arrive after the real round-trip delay (up to 48 minutes
+  from Mars), to show why the crew must act on its own.
+- **Real devices and network** — the watches, suit sensors and tablets on the vehicle's own network instead of the web
+  demo's cloud sync, and personal baselines learned from each crew member's pre-flight data.
 
 ## How it works
 

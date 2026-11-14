@@ -27,6 +27,7 @@ const READINGS: CardDef[] = [
   { id: 'fever', title: 'Fever', detail: '38.5 °C · medical officer told', level: 2, icon: 'thermo' },
   { id: 'critical', title: 'Hypoxia', detail: '85 % · whole crew and Earth', level: 3, icon: 'alarm' },
   { id: 'nodata', title: 'Sensor offline', detail: 'The watch stops sending', level: 'nodata', icon: 'signalOff' },
+  { id: 'slowSpo2', title: 'Oxygen slowly dropping', detail: 'Early warning before each alert', level: 1, icon: 'lungs' },
 ];
 
 const SUIT: CardDef[] = [
@@ -34,6 +35,7 @@ const SUIT: CardDef[] = [
   { id: 'shoulderPressure', title: 'Shoulder pressure', detail: '9 kPa · adjust position', level: 1, icon: 'shoulder' },
   { id: 'helmetCO2', title: 'Helmet CO₂ rising', detail: '11 mmHg · medical officer told', level: 2, icon: 'helmet' },
   { id: 'helmetWater', title: 'Water in helmet', detail: '140 mL · whole crew and Earth', level: 3, icon: 'water' },
+  { id: 'slowCO2', title: 'CO₂ slowly rising', detail: 'Early warning before each alert', level: 1, icon: 'helmet' },
 ];
 
 const PLACE_ICONS: Record<LocationId, IconName> = { habitat: 'habitat', lab: 'lab', airlock: 'airlock', eva: 'outside' };
@@ -133,7 +135,13 @@ export function ScenarioControls({ initialTarget }: { initialTarget: AstronautId
       <Section title="Vital signs">
         <div className="scn-cards">
           {READINGS.map((c) => (
-            <Card key={c.id} {...c} badgeText={c.id === 'nominal' ? undefined : badge(c.level)} active={active === c.id} onClick={() => run(c.id)} />
+            <Card
+              key={c.id}
+              {...c}
+              badgeText={c.id === 'nominal' ? undefined : c.id.startsWith('slow') ? 'Trend' : badge(c.level)}
+              active={active === c.id}
+              onClick={() => run(c.id)}
+            />
           ))}
         </div>
       </Section>
@@ -141,7 +149,14 @@ export function ScenarioControls({ initialTarget }: { initialTarget: AstronautId
       <Section title="Suit sensors" hint={suited ? undefined : `${a.name} is not suited. Move them to the airlock or outside.`}>
         <div className="scn-cards">
           {SUIT.map((c) => (
-            <Card key={c.id} {...c} badgeText={badge(c.level)} active={active === c.id} disabled={!suited} onClick={() => run(c.id)} />
+            <Card
+              key={c.id}
+              {...c}
+              badgeText={c.id.startsWith('slow') ? 'Trend' : badge(c.level)}
+              active={active === c.id}
+              disabled={!suited}
+              onClick={() => run(c.id)}
+            />
           ))}
         </div>
       </Section>

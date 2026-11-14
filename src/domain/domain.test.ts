@@ -5,6 +5,7 @@ import { crewSummary, MOOD_MISSED_MS, moodDue, moodPromptStart, snapshot, valueA
 import { levelFor, routingFor } from './vitals';
 import { radiationAdvisory } from '../data/spaceWeather';
 import { dutyStatus, seesCrewStatus, tabletViews } from './roles';
+import { forecast } from './forecast';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
@@ -277,5 +278,33 @@ describe('mood check-in reminders', () => {
     expect(now - asked).toBeGreaterThan(MOOD_MISSED_MS);
     await store.submitMood('02', 4);
     expect(moodPromptStart(store.current!, '02', now, 0)).toBeNull();
+  });
+});
+
+describe('early warning', () => {
+  it('stays quiet without scenarios (sensor noise is not a trend)', () => {
+    const state = newRoomState(0);
+    state.locations = { '01': 'eva', '03': 'airlock' };
+    let hits = 0;
+    for (let t = 60_000; t < 2 * 24 * 3600_000; t += 13_000) {
+      for (const id of ['01', '02', '03', '04'] as const) if (forecast(state, id, t)) hits++;
+    }
+    expect(hits).toBe(0);
+  });
+
+  it('warns ahead of time when oxygen drops slowly', async () => {
+    let now = 9_000_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(now), () => now));
+    await store.runScenario('04', 'slowSpo2');
+    let first: { at: number; level: number } | null = null;
+    let warningAt = Infinity;
+    for (let dt = 0; dt <= 150_000; dt += 2_500) {
+      const t = now + dt;
+      const f = forecast(store.current!, '04', t);
+      if (f && f.vital === 'spo2' && f.level === 2 && !first) first = { at: t, level: f.level };
+      if (snapshot(store.current!, '04', t).readings.spo2.level >= 2 && warningAt === Infinity) warningAt = t;
+    }
+    expect(first).not.toBeNull();
+    expect(warningAt - first!.at).toBeGreaterThanOrEqual(15_000);
   });
 });
