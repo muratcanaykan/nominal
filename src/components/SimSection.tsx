@@ -37,7 +37,7 @@ function CabinOverlay({ viewer, onClose }: { viewer: AstronautId; onClose: () =>
         <button className="drawer__close sim3d__overlay-close" onClick={onClose} aria-label="Close the cabin screen">
           ✕
         </button>
-        <CabinScreen now={now} viewer={viewer} locations="map" />
+        <CabinScreen now={now} viewer={viewer} />
       </div>
     </div>
   );
@@ -154,7 +154,8 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
               focusScreen={focusScreen}
               onScreenClick={onScreenClick}
               zoom={zoom}
-              active={onScreen || full}
+              // While the cabin screen is open in front, its own 3D view runs and this one pauses (only one renders).
+              active={(onScreen || full) && !screenOpen}
             />
           </Suspense>
         </SimBoundary>

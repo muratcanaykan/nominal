@@ -124,10 +124,7 @@ function AdvisoryCard({ advisory, now }: { advisory: Advisory; now: number }) {
   );
 }
 
-/**
- * `locations`: `3d` shows the live 3D view of the vehicle (default); `map` shows the flat map, used where a 3D view is
- * already on screen (the cabin screen opened from inside the 3D simulation).
- */
+/** `locations`: `3d` shows the live 3D view of the vehicle (default); `map` shows the flat crew map. */
 export function CabinScreen({ now, viewer = '04', locations = '3d' }: { now: number; viewer?: AstronautId; locations?: '3d' | 'map' }) {
   const { state } = useRoom();
   const summary = crewSummary(state ?? undefined, now);
