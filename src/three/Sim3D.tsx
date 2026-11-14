@@ -40,25 +40,31 @@ const MODULES: ModuleDef[] = [
   { id: 'lab', label: 'Lab', centre: [3.6, 0, 0], radius: 1.3, length: 3.6 },
 ];
 
+// One place per crew member in every location (four crew), so nobody overlaps even when everyone is in one place.
 const SLOTS: Record<LocationId, [number, number, number][]> = {
   airlock: [
     [-4.95, 0, 0.1],
     [-4.45, 0, -0.1],
+    [-4.7, 0.1, 0.5],
+    [-4.7, -0.1, -0.5],
   ],
   habitat: [
     [-1.6, 0, 0.25],
     [0.8, 0, 0.25],
-    [-0.4, -0.2, 0.55],
+    [-1.0, -0.1, 0.65],
+    [0.2, -0.1, 0.65],
   ],
   lab: [
-    [2.8, 0, 0],
-    [4.4, 0, 0],
-    [3.6, 0, 0.3],
+    [2.6, 0, 0],
+    [4.6, 0, 0],
+    [3.6, 0, 0.4],
+    [3.6, 0.1, -0.5],
   ],
   eva: [
     [0.6, 2.35, 0.9],
-    [3.2, 2.25, -0.8],
-    [-1.6, 2.4, -0.7],
+    [3.2, 2.25, -0.6],
+    [-2.2, 2.4, 0.3],
+    [5.4, 2.3, 0.6],
   ],
 };
 
