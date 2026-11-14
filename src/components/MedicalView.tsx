@@ -1,0 +1,200 @@
+// Crew medical view on the medical officer's tablet: notifications (level 2+), space weather, and every crew member's
+// detailed values, trends and timeline. The demo PIN is shown on screen on purpose: judges cannot log in to anything.
+
+import { useState, type FormEvent } from 'react';
+import { CREW, CREW_BY_ID, OSDR_GLUCOSE, PROFILES, type AstronautId } from '../domain/crew';
+import type { RoomState } from '../domain/room';
+import { crewSummary, type Snapshot } from '../domain/sim';
+import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
+import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
+import { formatAgo, formatDelay, levelClass } from './bits';
+import { Timeline, timeline, VitalTiles } from './health';
+
+export const DEMO_PIN = '2468';
+const UNLOCK_KEY = 'nominal:cmo';
+
+export function readUnlocked() {
+  try {
+    return sessionStorage.getItem(UNLOCK_KEY) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function PinGate({ onUnlock }: { onUnlock: () => void }) {
+  const [pin, setPin] = useState('');
+  const [wrong, setWrong] = useState(false);
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    if (pin === DEMO_PIN) {
+      try {
+        sessionStorage.setItem(UNLOCK_KEY, '1');
+      } catch {
+        /* storage unavailable */
+      }
+      onUnlock();
+    } else setWrong(true);
+  }
+  return (
+    <form className="pin-gate" onSubmit={submit}>
+      <h2>Medical officer access</h2>
+      <p>This view shows every crew member's detailed health data, so it opens only on the medical officer's tablet.</p>
+      <p className="pin-gate__demo">
+        Demo PIN: <strong>{DEMO_PIN}</strong>
+      </p>
+      <label htmlFor="cmo-pin">PIN</label>
+      <input
+        id="cmo-pin"
+        inputMode="numeric"
+        autoComplete="off"
+        maxLength={4}
+        value={pin}
+        onChange={(e) => {
+          setPin(e.target.value.replace(/\D/g, ''));
+          setWrong(false);
+        }}
+      />
+      {wrong && <p className="pin-gate__error">That PIN is not correct. Use the demo PIN shown above.</p>}
+      <button className="btn-primary" type="submit">
+        Open crew medical
+      </button>
+    </form>
+  );
+}
+
+function CrewCard({ s, state, now }: { s: Snapshot; state: RoomState | undefined; now: number }) {
+  const a = CREW_BY_ID[s.astronautId];
+  const subject = OSDR_GLUCOSE.subjects[a.osdrSubject];
+  return (
+    <article className={`cmo-card ${levelClass(s.status)}`}>
+      <header className="cmo-card__head">
+        <div>
+          <h3>{a.name}</h3>
+          <span>
+            {a.role} · {a.location}
+          </span>
+        </div>
+        <span className={`cmo-badge ${levelClass(s.status)}`}>
+          {s.status === 'nodata' ? `No data · ${formatAgo(now - s.readingsAt)}` : LEVEL_NAMES[s.worst]}
+        </span>
+      </header>
+      <VitalTiles s={s} state={state} now={now} />
+      <p className="cmo-ref">
+        Glucose baseline from real data: anonymised Inspiration4 crew member {a.osdrSubject}, pre-flight fasting mean{' '}
+        {Math.round(subject.preflightMean)} mg/dL, {subject.dayAfterLanding} mg/dL the day after landing (NASA OSDR{' '}
+        {OSDR_GLUCOSE.accession}).
+      </p>
+      <Timeline items={timeline(state, a.id).slice(0, 5)} now={now} />
+    </article>
+  );
+}
+
+export function SpaceWeatherPanel({ state, now }: { state: RoomState | undefined; now: number }) {
+  const weather = useSpaceWeather();
+  const advisory = radiationAdvisory(state, weather, now);
+  const recent = [...(weather?.notifications ?? [])]
+    .filter((n) => n.type !== 'Report')
+    .sort((a, b) => Date.parse(b.time) - Date.parse(a.time))
+    .slice(0, 6);
+  return (
+    <section className="panel">
+      <h2 className="panel__title">Space weather · NASA DONKI</h2>
+      <p className={`wx-status${advisory ? ' is-advisory' : ''}`}>
+        {advisory
+          ? advisory.source === 'simulated'
+            ? 'Radiation advisory: simulated solar particle event. Spacewalk crew return to the vehicle; all crew move to the most shielded area.'
+            : 'Radiation advisory: NASA DONKI reports a solar particle event in the last 72 hours.'
+          : 'No solar particle event in the last 72 hours. No radiation advisory.'}
+      </p>
+      {weather ? (
+        recent.length > 0 ? (
+          <ul className="wx-list">
+            {recent.map((n) => (
+              <li key={n.id}>
+                <div className="wx-list__head">
+                  <strong>{DONKI_LABELS[n.type] ?? n.type}</strong>
+                  <time>{formatDay(n.time)}</time>
+                </div>
+                <p>{n.summary}</p>
+                <a href={n.url} target="_blank" rel="noopener">
+                  DONKI record
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="cmo-empty">No space weather events in the last 30 days.</p>
+        )
+      ) : (
+        <p className="cmo-empty">Loading space weather…</p>
+      )}
+      {weather && (
+        <p className="panel__hint">
+          Source: NASA DONKI via api.nasa.gov · updated {formatDay(weather.fetchedAt)}
+          {weather.live ? '' : ' (saved snapshot)'}
+        </p>
+      )}
+    </section>
+  );
+}
+
+/** Everything the medical officer sees about the crew, after the PIN. */
+export function MedicalOverview({ state, now }: { state: RoomState | undefined; now: number }) {
+  const summary = crewSummary(state, now);
+  const profile = PROFILES[state?.profile ?? 'lunar'];
+  const notifications = CREW.flatMap((a) => {
+    const s = summary.snapshots[a.id];
+    const out: { id: AstronautId; text: string; level: string }[] = [];
+    if (!s.connected) out.push({ id: a.id, text: 'No sensor data', level: 'lvl-nodata' });
+    for (const v of VITAL_IDS) {
+      const r = s.readings[v];
+      if (s.connected && routingFor(r.level).cmo) {
+        out.push({
+          id: a.id,
+          text: `${VITALS[v].label} ${v === 'bloodPressure' ? `${r.value}/${r.secondary}` : r.value.toFixed(VITALS[v].decimals)} ${VITALS[v].unit} · ${LEVEL_NAMES[r.level]}`,
+          level: levelClass(r.level),
+        });
+      }
+    }
+    if (state?.help?.[a.id]) out.push({ id: a.id, text: 'Help requested', level: 'lvl-3' });
+    return out;
+  });
+
+  return (
+    <div className="medical">
+      <section className="panel">
+        <div className="medical__meta">
+          <h2 className="panel__title">Notifications</h2>
+          <span>
+            {summary.connected}/{summary.total} devices connected · {profile.label} · Earth link {formatDelay(profile.earthDelayMs)}
+          </span>
+        </div>
+        <p className="panel__hint">
+          You receive warning (level 2) and critical (level 3) alerts. Critical alerts also go to the whole crew and to
+          flight surgeons on Earth.
+        </p>
+        {notifications.length === 0 ? (
+          <p className="cmo-empty">No notifications for the medical officer.</p>
+        ) : (
+          <ul className="cmo-notes">
+            {notifications.map((n, i) => (
+              <li key={i} className={n.level}>
+                <strong>{CREW_BY_ID[n.id].name}</strong>
+                <span>{n.text}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className="cmo-grid" aria-label="Crew details">
+        {CREW.map((a) => (
+          <CrewCard key={a.id} s={summary.snapshots[a.id]} state={state} now={now} />
+        ))}
+      </section>
+
+      <SpaceWeatherPanel state={state} now={now} />
+      <p className="cmo__foot">Trends show the last 5 minutes. The shaded band is the nominal range. Simulated data.</p>
+    </div>
+  );
+}

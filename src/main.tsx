@@ -2,10 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Link, Route, Routes } from 'react-router';
 import { RoomRoute } from './lib/RoomRoute';
-import { CmoPage } from './pages/CmoPage';
 import { Hub } from './pages/Hub';
 import { Landing } from './pages/Landing';
-import { CabinPage, WatchPage } from './pages/ScreenPages';
+import { CabinPage, CmoRedirect, TabletPage, WatchPage } from './pages/ScreenPages';
 import './styles/base.css';
 import './styles/theme.css';
 import './styles/app.css';
@@ -31,7 +30,8 @@ createRoot(document.getElementById('root')!).render(
         <Route path="/r/:roomId" element={<RoomRoute><Hub /></RoomRoute>} />
         <Route path="/r/:roomId/watch/:astronautId" element={<RoomRoute><WatchPage /></RoomRoute>} />
         <Route path="/r/:roomId/cabin" element={<RoomRoute><CabinPage /></RoomRoute>} />
-        <Route path="/r/:roomId/cmo" element={<RoomRoute><CmoPage /></RoomRoute>} />
+        <Route path="/r/:roomId/tablet/:astronautId" element={<RoomRoute><TabletPage /></RoomRoute>} />
+        <Route path="/r/:roomId/cmo" element={<RoomRoute><CmoRedirect /></RoomRoute>} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

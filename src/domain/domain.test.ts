@@ -4,6 +4,7 @@ import { applyPatch, newRoomState } from './room';
 import { crewSummary, moodDue, snapshot, valueAt } from './sim';
 import { levelFor, routingFor } from './vitals';
 import { radiationAdvisory } from '../data/spaceWeather';
+import { dutyStatus, tabletViews } from './roles';
 
 describe('levelFor', () => {
   it('maps values to nested threshold bands', () => {
@@ -138,5 +139,35 @@ describe('radiation advisory', () => {
     expect(radiationAdvisory(store.current, null, now)).toBeNull();
     await store.simulateSolarEvent(true);
     expect(radiationAdvisory(store.current, null, now)?.source).toBe('simulated');
+  });
+});
+
+describe('roles', () => {
+  it('gives the commander duty status only, and keeps cautions private', async () => {
+    let now = 1_000_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(now), () => now));
+    const duty = (id: '01' | '02' | '03' | '04') => dutyStatus(snapshot(store.current!, id, now), store.current!, now);
+    expect(duty('02')).toBe('clear');
+    await store.runScenario('02', 'caution');
+    now += 10_000;
+    expect(duty('02')).toBe('clear');
+    await store.runScenario('02', 'warning');
+    now += 10_000;
+    expect(duty('02')).toBe('medical');
+    await store.runScenario('02', 'critical');
+    now += 10_000;
+    expect(duty('02')).toBe('critical');
+    await store.runScenario('04', 'nodata');
+    now += 1_000;
+    expect(duty('04')).toBe('nodata');
+    await store.requestHelp('01');
+    expect(duty('01')).toBe('help');
+  });
+
+  it('opens crew views only on the commander and medical officer tablets', () => {
+    expect(tabletViews('01')).toEqual(['self', 'crewStatus']);
+    expect(tabletViews('02')).toEqual(['self']);
+    expect(tabletViews('03')).toEqual(['self', 'crewMedical']);
+    expect(tabletViews('04')).toEqual(['self']);
   });
 });

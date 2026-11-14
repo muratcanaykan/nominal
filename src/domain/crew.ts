@@ -21,8 +21,10 @@ export interface Astronaut {
   callsign: string;
   role: string;
   location: string;
-  /** Crew Medical Officer — receives level 2+ alerts. */
+  /** Crew Medical Officer — receives level 2+ alerts and sees every crew member's details. */
   cmo?: boolean;
+  /** Commander — sees each crew member's duty status, never health values. */
+  commander?: boolean;
   onEva?: boolean;
   /** Anonymised Inspiration4 crew member whose real measurements anchor this astronaut's baseline. */
   osdrSubject: OsdrSubject;
@@ -44,6 +46,7 @@ export const CREW: Astronaut[] = [
     callsign: 'KAYA',
     role: 'Commander',
     location: 'Habitat module',
+    commander: true,
     osdrSubject: 'C002',
     baseline: { heartRate: 66, spo2: 98, systolic: 116, diastolic: 76, bodyTemp: 36.8, glucose: glucoseBaseline('C002'), sleep: 7.4 },
   },

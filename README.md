@@ -21,11 +21,15 @@ that helps astronauts assess their own health and guides them on what to do.
 
 - **Watch** — each astronaut sees only their own indicators, colour-coded by status, with an info panel that explains
   each value and what to do, and a help button.
+- **Tablet** — each astronaut's own detailed readings, short trends and history. The commander's tablet adds each crew
+  member's duty status without any health values. The crew medical officer's tablet adds every crew member's details,
+  trends and alert history.
 - **Cabin screen** — a shared display that shows device connectivity and only the alerts that need crew action.
   Routine health values stay private.
-- **Crew Medical Officer view** — detailed values, trends and alert history for the crew member responsible for care.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
+- **Live demo** — pick a crew member to see the mission through their devices: the cabin screen, the crew's watches and
+  that person's tablet. Scenarios change the simulated readings; every open screen updates live.
 
 ## How it works
 

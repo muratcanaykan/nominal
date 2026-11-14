@@ -1,14 +1,19 @@
-// Demo control: open the screens on other devices, drive scenarios, and preview the watch and cabin side by side.
+// Live demo: one mission seen from the crew's side. Pick a crew member to see what they can see: the shared cabin
+// screen, the crew's watches and that person's own tablet. Scenarios and device links open as side panels.
 
-import { useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { CabinScreen } from '../components/CabinScreen';
 import { Qr } from '../components/Qr';
+import { Tablet } from '../components/Tablet';
 import { WatchFace } from '../components/WatchFace';
-import { CREW, PROFILES, type AstronautId, type ProfileId } from '../domain/crew';
+import { DEMO_PIN } from '../components/MedicalView';
+import { CREW, CREW_BY_ID, PROFILES, type AstronautId, type ProfileId } from '../domain/crew';
+import { canSee } from '../domain/roles';
 import { activeScenario, type ScenarioId } from '../domain/scenarios';
 import { useRoomId } from '../lib/RoomRoute';
 import { useNow, useRoom, useStore } from '../lib/useRoom';
+import { readViewer, saveViewer } from '../lib/viewer';
 
 const SCENARIO_BUTTONS: { id: ScenarioId; label: string; level: string }[] = [
   { id: 'nominal', label: 'Nominal', level: 'lvl-0' },
@@ -20,75 +25,97 @@ const SCENARIO_BUTTONS: { id: ScenarioId; label: string; level: string }[] = [
   { id: 'nodata', label: 'Sensor offline', level: 'lvl-nodata' },
 ];
 
-function ScenarioPanel() {
-  const store = useStore();
-  const { state } = useRoom();
+type DrawerId = 'scenarios' | 'devices';
+
+function Drawer({ id, title, open, onClose, children }: { id: string; title: string; open: boolean; onClose: () => void; children: ReactNode }) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, onClose]);
   return (
-    <div className="panel">
-      <h2 className="panel__title">Scenarios</h2>
-      <div className="scenario-table">
-        {CREW.map((a) => {
-          const active = activeScenario(state, a.id);
-          const help = state?.help?.[a.id];
-          return (
-            <div key={a.id} className="scenario-row">
-              <div className="scenario-row__who">
-                <strong>{a.name}</strong>
-                <span>{a.location}</span>
-              </div>
-              <div className="scenario-row__buttons">
-                {SCENARIO_BUTTONS.map((b) => (
-                  <button
-                    key={b.id}
-                    className={`chip-btn ${b.level}${active === b.id ? ' is-active' : ''}`}
-                    aria-pressed={active === b.id}
-                    onClick={() => store.runScenario(a.id, b.id)}
-                  >
-                    {b.label}
-                  </button>
-                ))}
-                <button
-                  className={`chip-btn lvl-3${help ? ' is-active' : ''}`}
-                  aria-pressed={!!help}
-                  onClick={() => (help ? store.cancelHelp(a.id) : store.requestHelp(a.id))}
-                >
-                  Help call
-                </button>
-                <button className="chip-btn" onClick={() => store.askMood(a.id)}>
-                  Ask mood
-                </button>
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
+    <aside id={id} className={`drawer${open ? ' is-open' : ''}`} aria-label={title} inert={!open}>
+      <header className="drawer__head">
+        <h2>{title}</h2>
+        <button className="drawer__close" onClick={onClose} aria-label={`Close ${title.toLowerCase()}`}>
+          ✕
+        </button>
+      </header>
+      <div className="drawer__body">{children}</div>
+    </aside>
   );
 }
 
-function MissionPanel() {
+function ScenarioControls({ initialTarget }: { initialTarget: AstronautId }) {
+  const store = useStore();
+  const { state } = useRoom();
+  const [target, setTarget] = useState<AstronautId>(initialTarget);
+  const a = CREW_BY_ID[target];
+  const active = activeScenario(state, target);
+  const help = state?.help?.[target];
+  return (
+    <section className="drawer__section">
+      <h3 className="panel__title">Crew member</h3>
+      <div className="segmented" role="radiogroup" aria-label="Crew member for the scenario">
+        {CREW.map((c) => (
+          <button key={c.id} role="radio" aria-checked={target === c.id} className={target === c.id ? 'is-active' : ''} onClick={() => setTarget(c.id)}>
+            {c.callsign}
+          </button>
+        ))}
+      </div>
+      <p className="drawer__hint">
+        {a.name} · {a.role} · {a.location}
+      </p>
+      <h3 className="panel__title">Readings</h3>
+      <div className="chip-row">
+        {SCENARIO_BUTTONS.map((b) => (
+          <button
+            key={b.id}
+            className={`chip-btn ${b.level}${active === b.id ? ' is-active' : ''}`}
+            aria-pressed={active === b.id}
+            onClick={() => store.runScenario(target, b.id)}
+          >
+            {b.label}
+          </button>
+        ))}
+      </div>
+      <h3 className="panel__title">From the watch</h3>
+      <div className="chip-row">
+        <button
+          className={`chip-btn lvl-3${help ? ' is-active' : ''}`}
+          aria-pressed={!!help}
+          onClick={() => (help ? store.cancelHelp(target) : store.requestHelp(target))}
+        >
+          {help ? 'Cancel help call' : 'Help call'}
+        </button>
+        <button className="chip-btn" onClick={() => store.askMood(target)}>
+          Ask mood
+        </button>
+      </div>
+    </section>
+  );
+}
+
+function MissionControls() {
   const store = useStore();
   const { state } = useRoom();
   const [confirmReset, setConfirmReset] = useState(false);
   const profile = state?.profile ?? 'lunar';
   const solar = !!state?.spaceWeather?.sepAt;
   return (
-    <div className="panel">
-      <h2 className="panel__title">Mission</h2>
-      <div className="mission-controls">
-        <div className="segmented" role="radiogroup" aria-label="Mission location">
-          {(Object.keys(PROFILES) as ProfileId[]).map((p) => (
-            <button
-              key={p}
-              role="radio"
-              aria-checked={profile === p}
-              className={profile === p ? 'is-active' : ''}
-              onClick={() => store.setProfile(p)}
-            >
-              {PROFILES[p].label}
-            </button>
-          ))}
-        </div>
+    <section className="drawer__section">
+      <h3 className="panel__title">Mission</h3>
+      <div className="segmented" role="radiogroup" aria-label="Mission location">
+        {(Object.keys(PROFILES) as ProfileId[]).map((p) => (
+          <button key={p} role="radio" aria-checked={profile === p} className={profile === p ? 'is-active' : ''} onClick={() => store.setProfile(p)}>
+            {PROFILES[p].label}
+          </button>
+        ))}
+      </div>
+      <div className="chip-row">
         <button className={`chip-btn lvl-2${solar ? ' is-active' : ''}`} aria-pressed={solar} onClick={() => store.simulateSolarEvent(!solar)}>
           {solar ? 'End solar particle event' : 'Simulate solar particle event'}
         </button>
@@ -114,141 +141,206 @@ function MissionPanel() {
           </button>
         )}
       </div>
-    </div>
+    </section>
   );
 }
 
-function ScreenLinks({ roomId }: { roomId: string }) {
+function DeviceLinks({ roomId }: { roomId: string }) {
   const origin = window.location.origin;
-  const screens = [
-    { path: `/r/${roomId}/cabin`, title: 'Cabin screen', sub: 'Shared display in the vehicle' },
-    { path: `/r/${roomId}/cmo`, title: 'Medical officer', sub: 'Demo PIN 2468' },
-    ...CREW.map((a) => ({ path: `/r/${roomId}/watch/${a.id}`, title: `Watch · ${a.callsign}`, sub: a.name })),
+  const cards = [
+    { key: 'cabin', title: 'Cabin screen', sub: 'Shared display · open it on a large screen', links: [{ label: 'Cabin screen', path: `/r/${roomId}/cabin` }] },
+    ...CREW.map((a) => ({
+      key: a.id,
+      title: a.name,
+      sub: a.cmo ? `Medical officer · tablet PIN ${DEMO_PIN}` : a.role,
+      links: [
+        { label: 'Watch', path: `/r/${roomId}/watch/${a.id}` },
+        { label: 'Tablet', path: `/r/${roomId}/tablet/${a.id}` },
+      ],
+    })),
   ];
   return (
-    <div className="panel" id="screens">
-      <h2 className="panel__title">Open the screens on other devices</h2>
-      <p className="panel__hint">Scan a code with a phone to wear the watch, or open the cabin screen on a second computer.</p>
-      <div className="screen-grid">
-        {screens.map((s) => (
-          <div key={s.path} className="screen-card">
-            <Qr url={origin + s.path} label={s.title} />
-            <div className="screen-card__text">
-              <strong>{s.title}</strong>
-              <span>{s.sub}</span>
-              <Link to={s.path} target="_blank" rel="noopener">
-                Open in new tab
-              </Link>
+    <section className="drawer__section">
+      <p className="drawer__hint">Scan a code with a phone to wear a watch, or open a screen on another computer. Every screen updates live.</p>
+      <div className="device-list">
+        {cards.map((c) => (
+          <div key={c.key} className="device-card">
+            <div className="device-card__text">
+              <strong>{c.title}</strong>
+              <span>{c.sub}</span>
+            </div>
+            <div className="device-card__codes">
+              {c.links.map((l) => (
+                <div key={l.path} className="device-code">
+                  <Qr url={origin + l.path} label={`${c.title} ${l.label}`} />
+                  <Link to={l.path} target="_blank" rel="noopener">
+                    {l.label} ↗
+                  </Link>
+                </div>
+              ))}
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </section>
   );
 }
 
-/** Explains the three screens and walks a first-time visitor (or a judge) through one scenario. */
-function Guide() {
+function RolePicker({ persona, onPick }: { persona: AstronautId; onPick: (id: AstronautId) => void }) {
   return (
-    <details className="panel guide" open>
-      <summary className="panel__title">How this demo works</summary>
-      <div className="guide__devices">
-        <div className="guide__device">
-          <strong>Watch</strong>
-          <span>
-            Worn by each astronaut. Shows only that person's own readings, colour-coded alerts, what to do, and a help
-            button. Best opened on a phone.
-          </span>
-        </div>
-        <div className="guide__device">
-          <strong>Cabin screen</strong>
-          <span>
-            The shared display inside the vehicle. Everyone on board can see and use it. It never shows health values:
-            only device status and the alerts that need the crew.
-          </span>
-        </div>
-        <div className="guide__device">
-          <strong>Medical officer</strong>
-          <span>
-            The detailed view for the crew member responsible for care: every value, trends, history and space weather.
-            Opens with the demo PIN 2468.
-          </span>
-        </div>
+    <section className="roles" aria-labelledby="roles-title">
+      <div className="roles__intro">
+        <h2 id="roles-title" className="panel__title">
+          View as
+        </h2>
+        <p>Pick a crew member to see the mission through their devices. Use Scenarios to change their readings.</p>
       </div>
-      <ol className="guide__steps">
-        <li>
-          Open the cabin screen on a second screen and a watch on your phone (<a href="#screens">QR codes below</a>), or
-          just use the live preview on this page.
-        </li>
-        <li>
-          Press <b>Falling SpO₂</b> for Daniel Okafor. His watch warns him and the medical officer is told; the cabin
-          screen stays private.
-        </li>
-        <li>
-          Press <b>Hypoxia</b>. Now the whole crew sees it on the cabin screen and flight surgeons on Earth are notified.
-        </li>
-        <li>
-          On the cabin screen, press <b>I'm responding</b>. Every screen shows who is on the way.
-        </li>
-      </ol>
-    </details>
+      <div className="roles__list" role="radiogroup" aria-labelledby="roles-title">
+        {CREW.map((a) => (
+          <button
+            key={a.id}
+            role="radio"
+            aria-checked={persona === a.id}
+            aria-label={`${a.name}, ${a.cmo ? 'Medical officer' : a.role}, ${a.location}`}
+            className={`role-card${persona === a.id ? ' is-active' : ''}`}
+            onClick={() => onPick(a.id)}
+          >
+            <strong>{a.name}</strong>
+            <span>{a.cmo ? 'Medical officer' : a.role}</span>
+            <small>{a.location}</small>
+          </button>
+        ))}
+      </div>
+      <ul className="roles__sees" aria-label={`What ${CREW_BY_ID[persona].name} can see`}>
+        {canSee(persona).map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+function CopyLink() {
+  const [copied, setCopied] = useState(false);
+  const link = `${window.location.origin}${window.location.pathname}`;
+  return (
+    <button
+      className="btn-secondary"
+      onClick={() => {
+        navigator.clipboard?.writeText(link).then(
+          () => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 1600);
+          },
+          () => undefined,
+        );
+      }}
+    >
+      {copied ? 'Link copied' : 'Copy room link'}
+    </button>
   );
 }
 
 export function Hub() {
   const roomId = useRoomId();
   const now = useNow(250);
-  const [focus, setFocus] = useState<AstronautId>('02');
-  const [copied, setCopied] = useState(false);
-  const link = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+  const [persona, setPersona] = useState<AstronautId>(() => readViewer('02'));
+  const [drawer, setDrawer] = useState<DrawerId | null>(null);
+  const close = useCallback(() => setDrawer(null), []);
+  const toggle = (d: DrawerId) => setDrawer((cur) => (cur === d ? null : d));
+  const pick = (id: AstronautId) => {
+    setPersona(id);
+    saveViewer(id);
+  };
+  const you = CREW_BY_ID[persona];
 
   return (
-    <main className="hub">
-      <header className="hub__head">
-        <div>
-          <p className="hub__eyebrow">Nominal · Demo control</p>
-          <h1 className="hub__title">
-            Room <span className="hub__code">{roomId}</span>
-          </h1>
-        </div>
-        <button
-          className="btn-secondary"
-          onClick={() => {
-            navigator.clipboard?.writeText(link).then(
-              () => {
-                setCopied(true);
-                setTimeout(() => setCopied(false), 1600);
-              },
-              () => undefined,
-            );
-          }}
-        >
-          {copied ? 'Link copied' : 'Copy room link'}
-        </button>
-      </header>
+    <div className={`mission${drawer ? ' has-drawer' : ''}`}>
+      <main className="hub">
+        <header className="hub__head">
+          <div>
+            <p className="hub__eyebrow">Nominal · Live demo · Simulated data</p>
+            <h1 className="hub__title">
+              Room <span className="hub__code">{roomId}</span>
+            </h1>
+          </div>
+          <div className="hub__actions">
+            <button
+              className={`btn-primary${drawer === 'scenarios' ? ' is-active' : ''}`}
+              aria-expanded={drawer === 'scenarios'}
+              aria-controls="drawer-scenarios"
+              onClick={() => toggle('scenarios')}
+            >
+              Scenarios
+            </button>
+            <button
+              className={`btn-secondary${drawer === 'devices' ? ' is-active' : ''}`}
+              aria-expanded={drawer === 'devices'}
+              aria-controls="drawer-devices"
+              onClick={() => toggle('devices')}
+            >
+              Open on devices
+            </button>
+            <CopyLink />
+          </div>
+        </header>
 
-      <Guide />
-      <ScenarioPanel />
+        <RolePicker persona={persona} onPick={pick} />
 
-      <div className="panel">
-        <div className="preview-head">
-          <h2 className="panel__title">Live preview</h2>
-          <div className="segmented" role="radiogroup" aria-label="Watch to preview">
+        <section className="stage" aria-labelledby="stage-cabin">
+          <div className="stage__head">
+            <h2 id="stage-cabin" className="panel__title">
+              Cabin screen
+            </h2>
+            <span>Shared display in the vehicle · everyone on board sees it · you act as {you.name}</span>
+          </div>
+          <CabinScreen now={now} viewer={persona} />
+        </section>
+
+        <section className="stage" aria-labelledby="stage-watches">
+          <div className="stage__head">
+            <h2 id="stage-watches" className="panel__title">
+              Crew watches
+            </h2>
+            <span>In the vehicle, each watch is seen only by the person wearing it</span>
+          </div>
+          <div className="crew-watches">
             {CREW.map((a) => (
-              <button key={a.id} role="radio" aria-checked={focus === a.id} className={focus === a.id ? 'is-active' : ''} onClick={() => setFocus(a.id)}>
-                {a.callsign}
-              </button>
+              <div key={a.id} className={`crew-watch${a.id === persona ? ' is-you' : ''}`}>
+                <WatchFace astronautId={a.id} now={now} />
+                <button className="crew-watch__label" aria-pressed={a.id === persona} onClick={() => pick(a.id)}>
+                  <strong>{a.name}</strong>
+                  <span>{a.id === persona ? 'You' : 'View as'}</span>
+                </button>
+              </div>
             ))}
           </div>
-        </div>
-        <div className="preview">
-          <WatchFace astronautId={focus} now={now} />
-          <CabinScreen now={now} />
-        </div>
-      </div>
+        </section>
 
-      <ScreenLinks roomId={roomId} />
-      <MissionPanel />
-    </main>
+        <section className="stage" aria-labelledby="stage-tablet">
+          <div className="stage__head">
+            <h2 id="stage-tablet" className="panel__title">
+              {you.name}'s tablet
+            </h2>
+            <span>
+              {you.cmo
+                ? 'Personal tablet · the crew medical view opens with the demo PIN'
+                : you.commander
+                  ? 'Personal tablet · adds the crew duty status for the commander'
+                  : 'Personal tablet · only this crew member sees it'}
+            </span>
+          </div>
+          <Tablet key={persona} astronautId={persona} />
+        </section>
+      </main>
+
+      <Drawer id="drawer-scenarios" title="Scenarios" open={drawer === 'scenarios'} onClose={close}>
+        <ScenarioControls key={persona} initialTarget={persona} />
+        <MissionControls />
+      </Drawer>
+      <Drawer id="drawer-devices" title="Open on devices" open={drawer === 'devices'} onClose={close}>
+        <DeviceLinks roomId={roomId} />
+      </Drawer>
+    </div>
   );
 }
