@@ -1,0 +1,371 @@
+/* Three visual directions. Each defines the same tokens; a few shape rules differ. */
+
+/* ===== A · Mission Control ===== */
+.v-mission {
+  --bg: #070b10;
+  --screen: #05080c;
+  --sheet: #0a1017;
+  --panel: #0b1219;
+  --panel-2: #0f1922;
+  --line: #1d2b39;
+  --text: #d8e3ec;
+  --dim: #6f8496;
+  --accent: #56cfe1;
+  --heart: #ff6b6f;
+  --l0: #3ddc97;
+  --l1: #f2c94c;
+  --l2: #f2994a;
+  --l3: #ff5a5f;
+  --nodata: #5b6977;
+  --on-alert: #0a0d10;
+  --event-bg: color-mix(in srgb, #ff5a5f 9%, #0b1219);
+  --radius: 4px;
+  --radius-sm: 3px;
+  --font-ui: 'IBM Plex Sans Condensed', 'Arial Narrow', system-ui, sans-serif;
+  --font-num: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --font-label: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --num-weight: 500;
+}
+
+.v-mission .watch__case {
+  border-radius: 50%;
+  background: #0d141c;
+  box-shadow:
+    0 0 0 10px #111a23,
+    0 0 0 11px #24323f,
+    0 18px 40px rgb(0 0 0 / 0.55);
+}
+
+.v-mission .watch__screen {
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, transparent 60%, rgb(86 207 225 / 0.04) 61%, transparent 62%),
+    var(--screen);
+}
+
+.v-mission .tick {
+  stroke: var(--line);
+  transition: stroke 0.25s;
+}
+
+.v-mission .watch .tick--on {
+  stroke: var(--lvl);
+}
+
+.v-mission .watch.lvl-0 .tick--on {
+  stroke: var(--accent);
+}
+
+.v-mission .cabin {
+  background:
+    linear-gradient(var(--line) 1px, transparent 1px) 0 0 / 100% 28px,
+    var(--panel);
+  background-blend-mode: soft-light;
+}
+
+.v-mission .cabin__status-main {
+  font-family: var(--font-label);
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.v-mission .crew {
+  background: transparent;
+  border-width: 0 0 1px;
+  border-radius: 0;
+  font-family: var(--font-label);
+  font-size: 13px;
+}
+
+.v-mission .crew__dot {
+  border-radius: 1px;
+}
+
+/* ===== B · Clinical Glass ===== */
+.v-glass {
+  --bg: #0c1016;
+  --screen: #0d1219;
+  --sheet: #111821;
+  --panel: rgb(255 255 255 / 0.055);
+  --panel-2: rgb(255 255 255 / 0.07);
+  --line: rgb(255 255 255 / 0.11);
+  --text: #f3f6fa;
+  --dim: #9aa8b8;
+  --accent: #7dd3fc;
+  --heart: #fb7185;
+  --l0: #34d399;
+  --l1: #fcd34d;
+  --l2: #fb923c;
+  --l3: #fb5072;
+  --nodata: #94a3b8;
+  --on-alert: #14161a;
+  --event-bg: rgb(251 80 114 / 0.12);
+  --radius: 24px;
+  --radius-sm: 14px;
+  --font-ui: 'Manrope', system-ui, sans-serif;
+  --font-num: 'Manrope', system-ui, sans-serif;
+  --font-label: 'Manrope', system-ui, sans-serif;
+  --num-weight: 700;
+}
+
+.v-glass .watch__case {
+  border-radius: 50%;
+  padding: 7px;
+  background: linear-gradient(160deg, rgb(255 255 255 / 0.28), rgb(255 255 255 / 0.04) 45%, rgb(255 255 255 / 0.12));
+  box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+}
+
+.v-glass .watch__screen {
+  inset: 7px;
+  border-radius: 50%;
+  background:
+    radial-gradient(110% 80% at 50% 0%, color-mix(in srgb, var(--lvl) 20%, transparent), transparent 65%),
+    var(--screen);
+  transition: background 0.6s;
+}
+
+.v-glass .arc-track {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.07);
+  stroke-width: 4.5;
+}
+
+.v-glass .arc-fill {
+  fill: none;
+  stroke: var(--lvl);
+  stroke-width: 4.5;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.6s ease, stroke 0.4s;
+  filter: drop-shadow(0 0 2.5px var(--lvl));
+}
+
+.v-glass .watch__callsign,
+.v-glass .watch__clock,
+.v-glass .watch__unit,
+.v-glass .comp__label {
+  letter-spacing: 0.04em;
+}
+
+.v-glass .cabin {
+  backdrop-filter: blur(18px);
+  box-shadow: 0 30px 80px rgb(0 0 0 / 0.35);
+}
+
+.v-glass .cabin__status {
+  border-left-width: 1px;
+  box-shadow: inset 4px 0 0 var(--l0);
+}
+
+.v-glass .cabin__status.is-alert {
+  box-shadow: inset 4px 0 0 var(--l3);
+}
+
+.v-glass .crew__dot {
+  box-shadow: 0 0 10px var(--l0);
+}
+
+.v-glass .crew.is-alert .crew__dot {
+  box-shadow: 0 0 10px var(--l3);
+}
+
+.v-glass .event {
+  backdrop-filter: blur(10px);
+}
+
+.v-glass .btn-claim,
+.v-glass .btn-ghost {
+  border-radius: 99px;
+}
+
+/* ===== C · Suit Hardware ===== */
+.v-suit {
+  --bg: #141516;
+  --screen: #0e0f10;
+  --sheet: #121314;
+  --panel: #1d1f21;
+  --panel-2: #26292c;
+  --line: #3a3e42;
+  --text: #f2f1ea;
+  --dim: #a2a8ad;
+  --accent: #ff6a13;
+  --heart: #ff6a13;
+  --l0: #a8e05f;
+  --l1: #ffd400;
+  --l2: #ff8a00;
+  --l3: #ff3b30;
+  --nodata: #70757a;
+  --on-alert: #111111;
+  --event-bg: #221615;
+  --radius: 3px;
+  --radius-sm: 2px;
+  --font-ui: 'Barlow', system-ui, sans-serif;
+  --font-num: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --font-label: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --num-weight: 700;
+}
+
+.v-suit .watch__case {
+  aspect-ratio: 0.88;
+  border-radius: 20px;
+  background: #2b2e31;
+  box-shadow:
+    inset 0 0 0 2px #3c4045,
+    0 18px 40px rgb(0 0 0 / 0.55);
+}
+
+/* Four screws on the case */
+.v-suit .watch__case::before {
+  content: '';
+  position: absolute;
+  inset: 9px;
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 0 0, #55595e 3px, transparent 3.5px) 0 0 / 100% 100% no-repeat,
+    radial-gradient(circle at 100% 0, #55595e 3px, transparent 3.5px) 0 0 / 100% 100% no-repeat,
+    radial-gradient(circle at 0 100%, #55595e 3px, transparent 3.5px) 0 0 / 100% 100% no-repeat,
+    radial-gradient(circle at 100% 100%, #55595e 3px, transparent 3.5px) 0 0 / 100% 100% no-repeat;
+}
+
+.v-suit .watch__screen {
+  inset: 16px;
+  border-radius: 6px;
+  padding: 16% 10% 9%;
+  border: 2px solid #000;
+}
+
+.v-suit .ring--blocks {
+  inset: 6% 10% auto;
+  height: 4.5cqw;
+  display: flex;
+  gap: 1.2cqw;
+}
+
+.v-suit .block {
+  flex: 1;
+  background: var(--panel-2);
+  transform: skewX(-12deg);
+  transition: background 0.25s;
+}
+
+.v-suit .watch .block--on {
+  background: var(--lvl);
+}
+
+.v-suit .watch.lvl-0 .block--on {
+  background: var(--l0);
+}
+
+.v-suit .watch__callsign {
+  font-size: 5.4cqw;
+}
+
+.v-suit .watch__hero .num {
+  font-size: 30cqw;
+}
+
+.v-suit .comp {
+  border-top: 2px solid var(--line);
+  padding-top: 1.6cqw;
+}
+
+.v-suit .comp.lvl-1,
+.v-suit .comp.lvl-2,
+.v-suit .comp.lvl-3 {
+  border-top-color: var(--lvl);
+}
+
+.v-suit .comp__value {
+  font-size: 8cqw;
+}
+
+.v-suit .btn-round,
+.v-suit .btn-help {
+  border-radius: 3px;
+}
+
+.v-suit .btn-help {
+  font-size: 5.4cqw;
+}
+
+.v-suit .critical::before,
+.v-suit .critical::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 7%;
+  background: repeating-linear-gradient(-45deg, #111 0 9px, var(--l3) 9px 18px);
+}
+
+.v-suit .critical::before {
+  top: 0;
+}
+
+.v-suit .critical::after {
+  bottom: 0;
+}
+
+.v-suit .critical__label,
+.v-suit .critical__value {
+  font-family: var(--font-label);
+}
+
+.v-suit .cabin__logo {
+  color: var(--accent);
+}
+
+.v-suit .cabin__status-main,
+.v-suit .event__name,
+.v-suit .crew__name {
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.v-suit .cabin__status-main {
+  font-size: 24px;
+}
+
+.v-suit .cabin__status {
+  border-left-width: 8px;
+}
+
+.v-suit .event {
+  position: relative;
+  padding-left: 30px;
+  border-width: 2px;
+}
+
+.v-suit .event::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 14px;
+  background: repeating-linear-gradient(-45deg, #111 0 7px, var(--l3) 7px 14px);
+}
+
+.v-suit .crew {
+  border-left: 4px solid var(--l0);
+}
+
+.v-suit .crew.is-alert {
+  border-left-color: var(--l3);
+}
+
+.v-suit .crew.is-offline {
+  border-left-color: var(--nodata);
+}
+
+.v-suit .crew__dot {
+  border-radius: 0;
+}
+
+.v-suit .btn-claim {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--font-label);
+  font-size: 16px;
+}
