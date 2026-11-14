@@ -1,16 +1,18 @@
 // Fetches the last 30 days of NASA DONKI space weather notifications and solar energetic particle (SEP) events
 // into public/data/donki.json. Runs before every build. If NASA's API is unreachable or rate limited, the committed
 // snapshot is kept, so the build never fails because of it. Set NASA_API_KEY for a higher rate limit.
+// Local builds reuse a snapshot younger than an hour; Cloudflare Pages builds (CF_PAGES) always fetch.
 
 import { readFile, writeFile } from 'node:fs/promises';
 
 const OUT = 'public/data/donki.json';
 const key = process.env.NASA_API_KEY || 'DEMO_KEY';
+const inCi = Boolean(process.env.CF_PAGES || process.env.CI);
 const DAY = 24 * 3600 * 1000;
 
 try {
   const existing = JSON.parse(await readFile(OUT, 'utf8'));
-  if (!process.env.FORCE_DONKI && Date.now() - Date.parse(existing.fetchedAt) < 60 * 60 * 1000) {
+  if (!process.env.FORCE_DONKI && !inCi && Date.now() - Date.parse(existing.fetchedAt) < 60 * 60 * 1000) {
     console.log('DONKI: snapshot is less than an hour old, skipping fetch.');
     process.exit(0);
   }
@@ -42,6 +44,7 @@ try {
   const out = {
     source: 'NASA DONKI — Space Weather Database Of Notifications, Knowledge, Information (api.nasa.gov)',
     fetchedAt: end.toISOString(),
+    apiKey: key === 'DEMO_KEY' ? 'DEMO_KEY' : 'NASA_API_KEY',
     notifications: (notes ?? []).map((n) => ({
       type: n.messageType,
       id: n.messageID,
@@ -52,7 +55,7 @@ try {
     sep: (sep ?? []).map((s) => ({ id: s.sepID, time: s.eventTime, url: s.link })),
   };
   await writeFile(OUT, JSON.stringify(out, null, 1) + '\n');
-  console.log(`DONKI: saved ${out.notifications.length} notifications and ${out.sep.length} SEP events.`);
+  console.log(`DONKI: saved ${out.notifications.length} notifications and ${out.sep.length} SEP events (${out.apiKey}).`);
 } catch (e) {
   console.warn(`DONKI: fetch skipped (${e.message}); keeping the committed snapshot.`);
 }
