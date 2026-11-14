@@ -101,7 +101,13 @@ interface ScreenInfo {
   markers: (MapMarker & { alert: boolean; connected: boolean })[];
 }
 
-function useCrewVisuals(): { crew: CrewVisual[]; profile: ProfileId; solar: boolean; screen: ScreenInfo } {
+/**
+ * `cabin` follows the shared cabin screen's rule: only critical alerts and help calls are visible to the whole crew.
+ * Cautions and warnings (glowing regions, halos, labels, data colours) stay private there.
+ */
+export type SceneMode = 'sim' | 'cabin';
+
+function useCrewVisuals(mode: SceneMode): { crew: CrewVisual[]; profile: ProfileId; solar: boolean; screen: ScreenInfo } {
   const { state } = useRoom();
   const now = useNow(400);
   const weather = useSpaceWeather();
@@ -114,14 +120,17 @@ function useCrewVisuals(): { crew: CrewVisual[]; profile: ProfileId; solar: bool
     const slots = SLOTS[location];
     const slot = slots[used[location]++ % slots.length];
     const regions: Partial<Record<BodyRegion, Level>> = {};
-    for (const [r, v] of Object.entries(regionStates(s, st))) regions[r as BodyRegion] = v.level;
+    for (const [r, v] of Object.entries(regionStates(s, st))) {
+      if (mode === 'sim' || v.level === 3) regions[r as BodyRegion] = v.level;
+    }
+    const worst = s.connected ? s.worst : 0;
     return {
       id: a.id,
       callsign: a.callsign,
       location,
       slot,
       status: s.status,
-      worst: s.connected ? s.worst : 0,
+      worst: mode === 'sim' || worst === 3 ? worst : 0,
       regions,
       help: !!st?.help?.[a.id],
     } satisfies CrewVisual;
@@ -175,7 +184,9 @@ function Astronaut({
   onSelect,
   positions,
   reduce,
+  mode,
 }: {
+  mode: SceneMode;
   v: CrewVisual;
   selected: boolean;
   onSelect: (id: AstronautId) => void;
@@ -344,7 +355,9 @@ function Astronaut({
         >
           <span className="sim-tag__dot" />
           {v.callsign}
-          <small>{v.help ? 'Help' : v.status === 'nodata' ? 'No data' : LEVEL_NAMES[v.worst]}</small>
+          {(mode === 'sim' || v.help || v.status === 'nodata' || v.worst === 3) && (
+            <small>{v.help ? 'Help' : v.status === 'nodata' ? 'No data' : LEVEL_NAMES[v.worst]}</small>
+          )}
         </button>
       </Html>
     </group>
@@ -628,7 +641,7 @@ function drawScreen(ctx: CanvasRenderingContext2D, info: ScreenInfo) {
   }
 }
 
-function CabinScreen3D({ info, focused, onOpen }: { info: ScreenInfo; focused: boolean; onOpen: () => void }) {
+function CabinScreen3D({ info, focused, onOpen }: { info: ScreenInfo; focused: boolean; onOpen?: () => void }) {
   const canvas = useMemo(() => {
     const c = document.createElement('canvas');
     c.width = 1024;
@@ -659,12 +672,16 @@ function CabinScreen3D({ info, focused, onOpen }: { info: ScreenInfo; focused: b
   return (
     <group
       position={SCREEN_POS}
-      onClick={(e) => {
-        e.stopPropagation();
-        onOpen();
-      }}
-      onPointerOver={() => (document.body.style.cursor = 'pointer')}
-      onPointerOut={() => (document.body.style.cursor = '')}
+      onClick={
+        onOpen
+          ? (e) => {
+              e.stopPropagation();
+              onOpen();
+            }
+          : undefined
+      }
+      onPointerOver={onOpen ? () => (document.body.style.cursor = 'pointer') : undefined}
+      onPointerOut={onOpen ? () => (document.body.style.cursor = '') : undefined}
     >
       <mesh position={[0, 0, -0.02]}>
         <boxGeometry args={[SCREEN_W + 0.08, SCREEN_H + 0.08, 0.03]} />
@@ -674,7 +691,7 @@ function CabinScreen3D({ info, focused, onOpen }: { info: ScreenInfo; focused: b
         <planeGeometry args={[SCREEN_W, SCREEN_H]} />
         <meshBasicMaterial map={texture} toneMapped={false} />
       </mesh>
-      {!focused && (
+      {!focused && onOpen && (
         <Html position={[0, SCREEN_H / 2 + 0.16, 0]} center distanceFactor={7} zIndexRange={[15, 0]}>
           <button className="sim-tag sim-tag--screen" onClick={onOpen}>
             Cabin screen <small>open</small>
@@ -749,7 +766,7 @@ function Antenna() {
   );
 }
 
-function DataFlow({ crew, positions, profile }: { crew: CrewVisual[]; positions: Map<AstronautId, THREE.Vector3>; profile: ProfileId }) {
+function DataFlow({ crew, positions, profile, mode }: { crew: CrewVisual[]; positions: Map<AstronautId, THREE.Vector3>; profile: ProfileId; mode: SceneMode }) {
   const cmo = CREW.find((c) => c.cmo);
   const toCmo = crew.some((v) => v.status !== 'nodata' && (v.worst >= 2 || v.help));
   const critical = crew.some((v) => v.status !== 'nodata' && (v.worst === 3 || v.help));
@@ -769,9 +786,17 @@ function DataFlow({ crew, positions, profile }: { crew: CrewVisual[]; positions:
       {crew
         .filter((v) => v.status !== 'nodata')
         .map((v) => (
-          <Pulses key={v.id} from={() => positions.get(v.id)} to={router} color={LEVEL_COLOR[v.help ? 3 : v.worst]} count={2} speed={0.45} size={0.045} />
+          <Pulses
+            key={v.id}
+            from={() => positions.get(v.id)}
+            to={router}
+            color={mode === 'cabin' && !v.help && v.worst < 3 ? ACCENT : LEVEL_COLOR[v.help ? 3 : v.worst]}
+            count={2}
+            speed={0.45}
+            size={0.045}
+          />
         ))}
-      {toCmo && cmo && <Pulses from={router} to={() => positions.get(cmo.id)} color={LEVEL_COLOR[2]} count={3} speed={0.6} size={0.06} />}
+      {mode === 'sim' && toCmo && cmo && <Pulses from={router} to={() => positions.get(cmo.id)} color={LEVEL_COLOR[2]} count={3} speed={0.6} size={0.06} />}
       {critical && <Pulses from={router} to={() => SCREEN_POS} color={LEVEL_COLOR[3]} count={3} speed={0.7} size={0.06} />}
       <Line points={[ROUTER, earth]} color={critical ? LEVEL_COLOR[3] : ACCENT} lineWidth={1} dashed dashSize={0.6} gapSize={0.5} transparent opacity={critical ? 0.7 : 0.25} />
       {critical && <Pulses from={router} to={() => earth} color={LEVEL_COLOR[3]} count={4} speed={earthSpeed} size={0.35} />}
@@ -872,16 +897,20 @@ function CameraRig({
 }
 
 interface SceneProps {
+  /** `sim` for the simulation; `cabin` for the cabin screen (shared, so only crew alerts show). Default `sim`. */
+  mode?: SceneMode;
+  /** False pauses rendering, for example while the view is scrolled out of sight. */
+  active?: boolean;
   /** Camera distance multiplier, changed by the wheel and the + / - buttons outside the canvas. */
   zoom: { current: number };
   selected: AstronautId | null;
   onSelect: (id: AstronautId) => void;
   focusScreen: boolean;
-  onScreenClick: () => void;
+  onScreenClick?: () => void;
 }
 
-function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce }: SceneProps & { reduce: boolean }) {
-  const { crew, profile, solar, screen } = useCrewVisuals();
+function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce, mode = 'sim' }: SceneProps & { reduce: boolean }) {
+  const { crew, profile, solar, screen } = useCrewVisuals(mode);
   const positions = useMemo(() => new Map<AstronautId, THREE.Vector3>(), []);
   const moduleLevels: Partial<Record<LocationId, Level>> = {};
   for (const v of crew) {
@@ -902,7 +931,7 @@ function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce }:
       <Planet profile={profile} />
       <Vehicle moduleLevels={moduleLevels} />
       {crew.map((v) => (
-        <Astronaut key={v.id} v={v} selected={selected === v.id} onSelect={onSelect} positions={positions} reduce={reduce} />
+        <Astronaut key={v.id} v={v} selected={selected === v.id} onSelect={onSelect} positions={positions} reduce={reduce} mode={mode} />
       ))}
       {crew
         .filter((v) => v.location === 'eva')
@@ -910,13 +939,16 @@ function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce }:
           <Tether key={v.id} positions={positions} id={v.id} />
         ))}
       {solar && <SolarStream />}
-      <CabinScreen3D info={screen} focused={focusScreen} onOpen={onScreenClick} />
-      <DataFlow crew={crew} positions={positions} profile={profile} />
+      <CabinScreen3D info={screen} focused={focusScreen} onOpen={mode === 'sim' ? onScreenClick : undefined} />
+      <DataFlow crew={crew} positions={positions} profile={profile} mode={mode} />
       <CameraRig selected={selected} positions={positions} reduce={reduce} focusScreen={focusScreen} zoom={zoom} />
-      <EffectComposer>
-        <Bloom intensity={0.9} luminanceThreshold={0.55} luminanceSmoothing={0.2} mipmapBlur />
-        <Vignette offset={0.25} darkness={0.7} />
-      </EffectComposer>
+      {/* The cabin view skips post-processing to stay light next to the main simulation. */}
+      {mode === 'sim' && (
+        <EffectComposer>
+          <Bloom intensity={0.9} luminanceThreshold={0.55} luminanceSmoothing={0.2} mipmapBlur />
+          <Vignette offset={0.25} darkness={0.7} />
+        </EffectComposer>
+      )}
     </>
   );
 }
@@ -926,7 +958,8 @@ export default function Sim3D(props: SceneProps) {
   return (
     <Canvas
       className="sim3d__canvas"
-      dpr={[1, 1.75]}
+      dpr={props.mode === 'cabin' ? [1, 1.25] : [1, 1.75]}
+      frameloop={props.active === false ? 'never' : 'always'}
       camera={{ position: [3, 3.2, 11], fov: 40, near: 0.1, far: 400 }}
       gl={{ antialias: true }}
       aria-label="3D view of the vehicle and crew"

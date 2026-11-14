@@ -1081,3 +1081,50 @@ button:focus-visible {
     animation: none;
   }
 }
+
+/* ---------------- Live 3D view on the cabin screen ---------------- */
+
+.cabin__3d {
+  position: relative;
+  height: clamp(220px, 34vw, 380px);
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: #05070b;
+}
+
+.cabin__3d .sim3d__canvas {
+  position: absolute !important;
+  inset: 0;
+}
+
+.cabin__3d > .crew-map {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  max-height: 100%;
+}
+
+.cabin__3d-label {
+  position: absolute;
+  left: 12px;
+  top: 10px;
+  font: 700 10px var(--font-label);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: rgb(125 211 252 / 0.85);
+  pointer-events: none;
+}
+
+.cabin__3d-reset {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  padding: 6px 12px;
+  font: 600 12px var(--font-ui);
+  color: var(--text);
+  background: rgb(12 16 22 / 0.72);
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  cursor: pointer;
+}

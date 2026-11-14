@@ -3,6 +3,7 @@
 
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import type { AstronautId } from '../domain/crew';
+import { useInView } from '../lib/useInView';
 import { useNow } from '../lib/useRoom';
 import { CabinScreen } from './CabinScreen';
 import { SimPanel } from './SimPanel';
@@ -36,7 +37,7 @@ function CabinOverlay({ viewer, onClose }: { viewer: AstronautId; onClose: () =>
         <button className="drawer__close sim3d__overlay-close" onClick={onClose} aria-label="Close the cabin screen">
           ✕
         </button>
-        <CabinScreen now={now} viewer={viewer} />
+        <CabinScreen now={now} viewer={viewer} locations="map" />
       </div>
     </div>
   );
@@ -64,6 +65,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
   const [coverFull, setCoverFull] = useState(false);
   const [panelOpen, setPanelOpen] = useState(true);
   const full = nativeFull || coverFull;
+  const onScreen = useInView(box);
   const openTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -152,6 +154,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
               focusScreen={focusScreen}
               onScreenClick={onScreenClick}
               zoom={zoom}
+              active={onScreen || full}
             />
           </Suspense>
         </SimBoundary>

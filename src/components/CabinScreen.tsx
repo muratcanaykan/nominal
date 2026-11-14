@@ -8,6 +8,7 @@ import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather, type Advis
 import { isEva, locationLabel } from '../domain/locations';
 import { useRoom, useStore } from '../lib/useRoom';
 import { formatAgo, formatDelay } from './bits';
+import { CabinView3D } from './CabinView3D';
 import { CrewMap } from './CrewMap';
 
 const RESPONSE_STEP: Record<VitalId | 'help', string> = {
@@ -123,7 +124,11 @@ function AdvisoryCard({ advisory, now }: { advisory: Advisory; now: number }) {
   );
 }
 
-export function CabinScreen({ now, viewer = '04' }: { now: number; viewer?: AstronautId }) {
+/**
+ * `locations`: `3d` shows the live 3D view of the vehicle (default); `map` shows the flat map, used where a 3D view is
+ * already on screen (the cabin screen opened from inside the 3D simulation).
+ */
+export function CabinScreen({ now, viewer = '04', locations = '3d' }: { now: number; viewer?: AstronautId; locations?: '3d' | 'map' }) {
   const { state } = useRoom();
   const summary = crewSummary(state ?? undefined, now);
   const profile = PROFILES[state?.profile ?? 'lunar'];
@@ -135,6 +140,9 @@ export function CabinScreen({ now, viewer = '04' }: { now: number; viewer?: Astr
   const lastEvent = [...(weather?.notifications ?? [])]
     .filter((e) => e.type !== 'Report')
     .sort((a, b) => Date.parse(b.time) - Date.parse(a.time))[0];
+  const map = (
+    <CrewMap state={state} alerting={alerting} offline={new Set(CREW.filter((a) => !summary.snapshots[a.id].connected).map((a) => a.id))} />
+  );
   const statusMain = n
     ? `${n} crew alert${n > 1 ? 's' : ''}${advisory ? ' · radiation advisory' : ''}`
     : advisory
@@ -171,11 +179,7 @@ export function CabinScreen({ now, viewer = '04' }: { now: number; viewer?: Astr
         </AnimatePresence>
       </div>
 
-      <CrewMap
-        state={state}
-        alerting={alerting}
-        offline={new Set(CREW.filter((a) => !summary.snapshots[a.id].connected).map((a) => a.id))}
-      />
+      {locations === '3d' ? <CabinView3D fallback={map} /> : map}
 
       <ul className="cabin__crew">
         {crew.map((a) => {
