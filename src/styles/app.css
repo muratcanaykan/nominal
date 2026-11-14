@@ -1888,7 +1888,7 @@
   background: var(--panel-2) !important;
 }
 
-.sim3d__view.is-active {
+.sim3d__view:hover {
   border-color: color-mix(in srgb, var(--accent) 45%, var(--line));
 }
 

@@ -56,8 +56,6 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
   const box = useRef<HTMLDivElement>(null);
   const view = useRef<HTMLDivElement>(null);
   const zoom = useRef(1);
-  // The wheel zooms once the view is in use (clicked or full screen), so scrolling the page never gets stuck on it.
-  const [active, setActive] = useState(false);
   const [target, setTarget] = useState<AstronautId | null>(null);
   const [focusScreen, setFocusScreen] = useState(false);
   const [screenOpen, setScreenOpen] = useState(false);
@@ -112,16 +110,15 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
   useEffect(() => {
     const el = view.current;
     if (!el) return;
+    // The wheel (or a trackpad pinch) zooms whenever the pointer is over the 3D view.
     const onWheel = (e: WheelEvent) => {
-      // Trackpad pinch arrives as a wheel event with ctrlKey; it always zooms.
-      if (!active && !full && !e.ctrlKey && !e.metaKey) return;
       if ((e.target as HTMLElement).closest('.sim3d__overlay')) return;
       e.preventDefault();
       zoom.current = clampZoom(zoom.current * Math.exp(e.deltaY * 0.0015));
     };
     el.addEventListener('wheel', onWheel, { passive: false });
     return () => el.removeEventListener('wheel', onWheel);
-  }, [active, full]);
+  }, []);
 
   const zoomBy = (factor: number) => {
     zoom.current = clampZoom(zoom.current * factor);
@@ -156,9 +153,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
     <div ref={box} className={`sim3d${full ? ' is-full' : ''}${coverFull ? ' is-cover' : ''}${full && !panelOpen ? ' is-panel-hidden' : ''}`}>
       <div
         ref={view}
-        className={`sim3d__view${active || full ? ' is-active' : ''}`}
-        onPointerDown={() => setActive(true)}
-        onPointerLeave={() => setActive(false)}
+        className="sim3d__view"
       >
         <SimBoundary>
           <Suspense fallback={<div className="sim3d__loading">Loading the 3D simulation…</div>}>
@@ -178,7 +173,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
           </Suspense>
         </SimBoundary>
         <p className="sim3d__hint">
-          Drag to rotate · {active || full ? 'Scroll to zoom' : 'Click, then scroll to zoom'} · Click the cabin screen or an astronaut ·
+          Drag to rotate · Scroll to zoom · Click the cabin screen or an astronaut ·
           Astronaut model: NASA 3D Resources · Simulated data
         </p>
         <div className="sim3d__buttons">
