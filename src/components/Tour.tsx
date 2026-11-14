@@ -90,7 +90,7 @@ const STEPS: Step[] = [
     target: section('stage-cabin'),
     title: 'Level 3 · Critical',
     body: (c) =>
-      `Now the whole crew has to act. The shared cabin screen shows an event card: who, where and the first response steps. Flight surgeons on Earth are told after a ${c.delay} signal delay, so the crew does not wait for them. Routine values never appear on this screen.`,
+      `Now the whole crew has to act. The shared cabin screen shows an event card: who, where and a response checklist anyone on board can tick off. Flight surgeons on Earth are told after a ${c.delay} signal delay, so the crew does not wait for them. Routine values never appear on this screen.`,
     told: ['watch', 'cmo', 'cabin', 'earth'],
     minMs: 11_000,
   },

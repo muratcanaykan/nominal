@@ -20,6 +20,8 @@ export interface RoomState {
   disconnects?: Partial<Record<AstronautId, { at: number }>>;
   help?: Partial<Record<AstronautId, { at: number }>>;
   claims?: Partial<Record<AstronautId, { by: AstronautId; at: number }>>;
+  /** Response checklist steps ticked on the cabin screen, keyed by step id. */
+  checklists?: Partial<Record<AstronautId, Partial<Record<string, { by: AstronautId; at: number }>>>>;
   /** Acknowledged alerts, keyed `${vital}-${level}`. */
   acks?: Partial<Record<AstronautId, Record<string, number>>>;
   moods?: Partial<Record<AstronautId, { value: number; at: number }>>;

@@ -121,15 +121,22 @@ export class RoomStore {
   }
 
   requestHelp(id: AstronautId) {
-    return this.update({ [`help/${id}`]: { at: this.now() }, [`claims/${id}`]: null });
+    return this.update({ [`help/${id}`]: { at: this.now() }, [`claims/${id}`]: null, [`checklists/${id}`]: null });
   }
 
   cancelHelp(id: AstronautId) {
-    return this.update({ [`help/${id}`]: null, [`claims/${id}`]: null });
+    return this.update({ [`help/${id}`]: null, [`claims/${id}`]: null, [`checklists/${id}`]: null });
   }
 
   claim(id: AstronautId, by: AstronautId) {
     return this.update({ [`claims/${id}`]: { by, at: this.now() } });
+  }
+
+  /** Ticks or unticks a response step on the cabin screen; the first tick also marks `by` as responding. */
+  checkStep(id: AstronautId, step: string, by: AstronautId, done: boolean) {
+    const patch: Patch = { [`checklists/${id}/${step}`]: done ? { by, at: this.now() } : null };
+    if (done && !this.state?.claims?.[id]) patch[`claims/${id}`] = { by, at: this.now() };
+    return this.update(patch);
   }
 
   /** Closes a crew alert: clears the help request, the claim and the astronaut's scenario. */

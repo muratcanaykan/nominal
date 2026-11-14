@@ -77,6 +77,7 @@ export function scenarioPatch(id: AstronautId, scenario: ScenarioId, now: number
     [`disconnects/${id}`]: null,
     [`acks/${id}`]: null,
     [`claims/${id}`]: null,
+    [`checklists/${id}`]: null,
     [`symptomChecks/${id}`]: null,
     [`reports/${id}`]: s.report ? { jointPain: { ...s.report.jointPain, at: now } } : null,
   };

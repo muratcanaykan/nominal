@@ -9,6 +9,7 @@ import { forecast } from './forecast';
 import { dose } from './radiation';
 import { personBeats, personView } from './narrator';
 import { scenarioPatch } from './scenarios';
+import { checklistProgress, responseChecklist } from './response';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
@@ -365,5 +366,31 @@ describe('narrator', () => {
     const n = personBeats(before, view(off, 10_000), '02', snapshot(off, '02', 10_000), off);
     expect(n[0].tone).toBe('nodata');
     expect(n[0].text).toContain('neither healthy nor an emergency');
+  });
+});
+
+describe('response checklist', () => {
+  it('fits the alert and the location, and never names a value', () => {
+    const state = applyPatch(newRoomState(0), scenarioPatch('02', 'critical', 0));
+    const alert = crewSummary(state, 10_000).alerts.find((a) => a.astronautId === '02')!;
+    const steps = responseChecklist(alert, state).map((s) => s.id);
+    // Okafor is outside on a spacewalk: radio first, then the airlock.
+    expect(steps).toEqual(['reach', 'kit', 'act', 'airlock', 'care', 'earth']);
+    expect(responseChecklist(alert, state)[0].text).toContain('suit radio');
+    for (const s of responseChecklist(alert, state)) expect(s.text).not.toMatch(/\d+ ?%|bpm|mmHg/);
+  });
+
+  it('ticks steps, marks the responder and clears with the alert', async () => {
+    const backend = new MemoryBackend(newRoomState(0), () => 10_000);
+    const store = new RoomStore(backend);
+    await store.runScenario('01', 'critical');
+    await store.checkStep('01', 'reach', '04', true);
+    await store.checkStep('01', 'kit', '03', true);
+    const state = store.current!;
+    expect(state.claims?.['01']?.by).toBe('04');
+    const alert = crewSummary(state, 20_000).alerts.find((a) => a.astronautId === '01')!;
+    expect(checklistProgress(alert, state)).toEqual({ done: 2, total: 5 });
+    await store.resolve('01');
+    expect(store.current!.checklists?.['01']).toBeUndefined();
   });
 });

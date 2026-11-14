@@ -4,8 +4,9 @@
 import { CREW_BY_ID, PROFILES, type AstronautId } from './crew';
 import { forecastText, type Forecast } from './forecast';
 import { isSuited, locationLabel, locationOf, type LocationId } from './locations';
+import { checklistProgress } from './response';
 import type { RoomState } from './room';
-import type { Snapshot } from './sim';
+import type { CrewAlert, Snapshot } from './sim';
 import { LEVEL_NAMES, VITALS, type Level, type VitalId } from './vitals';
 
 /** Who learns about an event. */
@@ -31,20 +32,27 @@ export interface PersonView {
   pending: boolean;
   help: boolean;
   location: LocationId;
+  /** Crew alert on the cabin screen: who answered it and whether its response checklist is complete. */
+  respondedBy?: AstronautId;
+  checklistDone: boolean;
 }
 
-export function personView(state: RoomState | undefined, id: AstronautId, s: Snapshot, now: number): PersonView {
+export function personView(state: RoomState | undefined, id: AstronautId, s: Snapshot, now: number, alert?: CrewAlert): PersonView {
   const help = state?.help?.[id];
+  const progress = alert ? checklistProgress(alert, state) : null;
   return {
     status: s.status,
     vital: s.top?.id,
     pending: !!s.top?.pending,
     help: !!help && help.at <= now,
     location: locationOf(state, id),
+    respondedBy: alert?.claimedBy,
+    checklistDone: !!progress && progress.done === progress.total,
   };
 }
 
-export const viewKey = (v: PersonView) => `${v.status}|${v.vital ?? ''}|${v.pending}|${v.help}|${v.location}`;
+export const viewKey = (v: PersonView) =>
+  `${v.status}|${v.vital ?? ''}|${v.pending}|${v.help}|${v.location}|${v.respondedBy ?? ''}|${v.checklistDone}`;
 
 const rank = (s: Level | 'nodata') => (s === 'nodata' ? -1 : s);
 
@@ -152,6 +160,24 @@ export function personBeats(prev: PersonView, next: PersonView, id: AstronautId,
         });
       }
     }
+  }
+  if (next.respondedBy && next.respondedBy !== prev.respondedBy) {
+    beats.push({
+      who: next.respondedBy,
+      tone: 'info',
+      title: `${CREW_BY_ID[next.respondedBy].name} is responding to ${name}`,
+      text: 'The cabin screen shows who is on it, so the rest of the crew can keep working. Each response step is ticked off there.',
+      told: ['cmo', 'cabin'],
+    });
+  }
+  if (next.checklistDone && !prev.checklistDone) {
+    beats.push({
+      who: id,
+      tone: 0,
+      title: `Response checklist complete for ${name}`,
+      text: 'Every step is done. The crew resolves the alert once the crew member is stable.',
+      told: ['cmo', 'cabin'],
+    });
   }
   return beats;
 }

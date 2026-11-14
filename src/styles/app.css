@@ -4062,3 +4062,129 @@ html {
 .level-legend .lvl-mark {
   color: var(--lvl);
 }
+
+/* ---------- Response checklist (cabin event card) ---------- */
+
+.check {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  background: rgb(0 0 0 / 0.18);
+  border: 1px solid color-mix(in srgb, var(--l3) 30%, var(--line));
+  border-radius: var(--radius-sm);
+}
+
+.check__head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.check__count {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.check__bar {
+  height: 4px;
+  overflow: hidden;
+  background: var(--panel-2);
+  border-radius: 99px;
+}
+
+.check__bar span {
+  display: block;
+  height: 100%;
+  background: var(--l0);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.check__list {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.check__item {
+  display: grid;
+  grid-template-columns: 26px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px 6px 6px;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.check__item:hover {
+  background: var(--panel);
+  border-color: var(--line);
+}
+
+.check__box {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--dim);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.check__item.is-done .check__box {
+  color: var(--on-alert);
+  background: var(--l0);
+  border-color: var(--l0);
+}
+
+.check__item.is-done .check__text {
+  color: var(--dim);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in srgb, var(--dim) 60%, transparent);
+}
+
+.check__by {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--l0);
+  white-space: nowrap;
+}
+
+.check__done {
+  margin: 2px 0 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--l0);
+}
+
+.cmo-response {
+  margin: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--dim);
+  background: var(--event-bg);
+  border: 1px solid color-mix(in srgb, var(--l3) 40%, transparent);
+  border-radius: 10px;
+}
+
+.cmo-response strong {
+  color: var(--l3);
+  font-variant-numeric: tabular-nums;
+}

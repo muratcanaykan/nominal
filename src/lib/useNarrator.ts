@@ -43,7 +43,7 @@ export function useNarrator(show: boolean) {
       const out: Beat[] = [];
       for (const a of CREW) {
         const s = summary.snapshots[a.id];
-        const v = personView(state, a.id, s, now);
+        const v = personView(state, a.id, s, now, summary.alerts.find((x) => x.astronautId === a.id));
         const prev = committed.get(a.id);
         const fc = forecast(state, a.id, now);
         if (!prev) {

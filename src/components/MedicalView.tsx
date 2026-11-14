@@ -6,7 +6,8 @@ import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, OSDR_GLUCOSE, PROFILES, type A
 import { locationLabel } from '../domain/locations';
 import type { RoomState } from '../domain/room';
 import { forecast, forecastText } from '../domain/forecast';
-import { crewSummary, MOOD_MISSED_MS, moodPromptStart, type Snapshot } from '../domain/sim';
+import { crewSummary, MOOD_MISSED_MS, moodPromptStart, type CrewAlert, type Snapshot } from '../domain/sim';
+import { checklistProgress } from '../domain/response';
 import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { formatAgo, formatDelay, LevelMark, levelClass } from './bits';
@@ -72,7 +73,33 @@ export function PinGate({ onUnlock }: { onUnlock: () => void }) {
   );
 }
 
-function CrewCard({ s, state, now, focused }: { s: Snapshot; state: RoomState | undefined; now: number; focused?: boolean }) {
+/** Crew alert progress on the cabin screen: who is responding and how many checklist steps are done. */
+function ResponseLine({ alert, state }: { alert: CrewAlert; state: RoomState | undefined }) {
+  const p = checklistProgress(alert, state);
+  const by = alert.claimedBy ? CREW_BY_ID[alert.claimedBy].name : null;
+  return (
+    <p className="cmo-response">
+      <strong>
+        Response {p.done}/{p.total}
+      </strong>{' '}
+      · {by ? `${by} is responding` : 'Nobody has answered yet on the cabin screen'}
+    </p>
+  );
+}
+
+function CrewCard({
+  s,
+  state,
+  now,
+  focused,
+  alert,
+}: {
+  s: Snapshot;
+  state: RoomState | undefined;
+  now: number;
+  focused?: boolean;
+  alert?: CrewAlert;
+}) {
   const a = CREW_BY_ID[s.astronautId];
   const subject = OSDR_GLUCOSE.subjects[a.osdrSubject];
   return (
@@ -89,6 +116,7 @@ function CrewCard({ s, state, now, focused }: { s: Snapshot; state: RoomState | 
           <LevelMark status={s.status} /> {s.status === 'nodata' ? `No data · ${formatAgo(now - s.readingsAt)}` : LEVEL_NAMES[s.worst]}
         </span>
       </header>
+      {alert && <ResponseLine alert={alert} state={state} />}
       <div className="cmo-card__body">
         <BodyMap s={s} state={state} compact />
         <VitalTiles s={s} state={state} now={now} />
@@ -225,7 +253,14 @@ export function MedicalOverview({
 
       <section className="cmo-grid" aria-label="Crew details">
         {CREW.map((a) => (
-          <CrewCard key={a.id} s={summary.snapshots[a.id]} state={state} now={now} focused={focus?.id === a.id} />
+          <CrewCard
+            key={a.id}
+            s={summary.snapshots[a.id]}
+            state={state}
+            now={now}
+            focused={focus?.id === a.id}
+            alert={summary.alerts.find((x) => x.astronautId === a.id)}
+          />
         ))}
       </section>
 

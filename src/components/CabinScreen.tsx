@@ -5,11 +5,58 @@ import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, PROFILES, type AstronautId } f
 import { crewSummary, missionClock, type CrewAlert } from '../domain/sim';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather, type Advisory } from '../data/spaceWeather';
 import { isEva, locationLabel } from '../domain/locations';
-import { responseSteps } from '../domain/response';
+import { responseChecklist } from '../domain/response';
 import { useRoom, useStore } from '../lib/useRoom';
 import { formatAgo, formatDelay } from './bits';
 import { CabinView3D } from './CabinView3D';
 import { CrewMap } from './CrewMap';
+
+/** Shared response checklist: anyone on board ticks steps off; every screen sees who did what. */
+function Checklist({ alert, now, viewer }: { alert: CrewAlert; now: number; viewer: AstronautId }) {
+  const store = useStore();
+  const { state } = useRoom();
+  const steps = responseChecklist(alert, state);
+  const ticks = state?.checklists?.[alert.astronautId] ?? {};
+  const done = steps.filter((s) => ticks[s.id]).length;
+  return (
+    <div className="check">
+      <div className="check__head">
+        <span>Response checklist</span>
+        <span className="check__count">
+          {done}/{steps.length}
+        </span>
+      </div>
+      <div className="check__bar" aria-hidden="true">
+        <span style={{ transform: `scaleX(${done / steps.length})` }} />
+      </div>
+      <ol className="check__list">
+        {steps.map((step, i) => {
+          const t = ticks[step.id];
+          return (
+            <li key={step.id}>
+              <button
+                className={`check__item${t ? ' is-done' : ''}`}
+                aria-pressed={!!t}
+                onClick={() => store.checkStep(alert.astronautId, step.id, viewer, !t)}
+              >
+                <span className="check__box" aria-hidden="true">
+                  {t ? '✓' : i + 1}
+                </span>
+                <span className="check__text">{step.text}</span>
+                {t && (
+                  <span className="check__by">
+                    {CREW_BY_ID[t.by].callsign} · {formatAgo(now - t.at)}
+                  </span>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ol>
+      {done === steps.length && <p className="check__done">All steps done. Resolve the alert once {CREW_BY_ID[alert.astronautId].name} is stable.</p>}
+    </div>
+  );
+}
 
 function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; viewer: AstronautId }) {
   const store = useStore();
@@ -19,7 +66,6 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
   const delay = PROFILES[state?.profile ?? 'lunar'].earthDelayMs;
   const since = alert.since ?? now;
   const remaining = since + delay - now;
-  const steps = responseSteps(alert, state);
 
   return (
     <motion.article
@@ -41,10 +87,6 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
           <dd>{locationLabel(state, a.id)}</dd>
         </div>
         <div>
-          <dt>Response</dt>
-          <dd>{steps.join(' · ')}</dd>
-        </div>
-        <div>
           <dt>Notified</dt>
           <dd>
             {cmo ? `${cmo.name} (medical officer)` : 'Medical officer'} ·{' '}
@@ -52,6 +94,7 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
           </dd>
         </div>
       </dl>
+      <Checklist alert={alert} now={now} viewer={viewer} />
       <footer className="event__foot">
         {alert.claimedBy ? (
           <>
