@@ -3,6 +3,7 @@
 // `cabin` (the shared cabin screen): who and where, the watch connection and crew alerts only. Health values never
 // show there; the crew member themselves or the medical officer can jump to their own tablet instead.
 
+import type { BodyRegion } from '../domain/body';
 import { CREW_BY_ID, type AstronautId } from '../domain/crew';
 import { isSuited, locationLabel } from '../domain/locations';
 import { responseSteps } from '../domain/response';
@@ -16,6 +17,7 @@ import { formatAgo, levelClass, ShortLabel } from './bits';
 import { BodyMap } from './BodyMap';
 import { icons } from './icons';
 import { readingNote, readingValue, showsTile, Sparkline } from './health';
+import { RegionDetails } from './RegionDetails';
 
 const TRENDS: VitalId[] = ['heartRate', 'spo2', 'bloodPressure', 'bodyTemp', 'glucose'];
 
@@ -42,11 +44,23 @@ function CardHead({ id, status, statusLevel, onClose }: { id: AstronautId; statu
 }
 
 /** Body map and every reading with a short trend. */
-function Readings({ id, s, state, now }: { id: AstronautId; s: Snapshot; state: RoomState | undefined; now: number }) {
+function Readings({
+  id,
+  s,
+  state,
+  now,
+  onRegion,
+}: {
+  id: AstronautId;
+  s: Snapshot;
+  state: RoomState | undefined;
+  now: number;
+  onRegion?: (region: BodyRegion) => void;
+}) {
   return (
     <div className="hcard__body">
       <div className="hcard__map">
-        <BodyMap s={s} state={state} compact />
+        <BodyMap s={s} state={state} compact onRegion={onRegion} />
       </div>
       <ul className="hcard__vitals">
         {VITAL_IDS.filter((v) => showsTile(s.readings[v])).map((v) => {
@@ -72,7 +86,17 @@ function Readings({ id, s, state, now }: { id: AstronautId; s: Snapshot; state: 
   );
 }
 
-function FullCard({ id, onClose }: { id: AstronautId; onClose: () => void }) {
+function FullCard({
+  id,
+  onClose,
+  region,
+  onRegion,
+}: {
+  id: AstronautId;
+  onClose: () => void;
+  region?: BodyRegion | null;
+  onRegion?: (region: BodyRegion | null) => void;
+}) {
   const { state } = useRoom();
   const now = useNow(1000);
   const st = state ?? undefined;
@@ -81,8 +105,12 @@ function FullCard({ id, onClose }: { id: AstronautId; onClose: () => void }) {
   return (
     <aside className="hcard" aria-label={`Health of ${CREW_BY_ID[id].name}`}>
       <CardHead id={id} status={status} statusLevel={levelClass(s.status)} onClose={onClose} />
-      <Readings id={id} s={s} state={st} now={now} />
-      <p className="hcard__foot">Simulation view · simulated data · trends: last 5 minutes</p>
+      {region && onRegion ? (
+        <RegionDetails region={region} s={s} state={st} onClose={() => onRegion(null)} />
+      ) : (
+        <Readings id={id} s={s} state={st} now={now} onRegion={onRegion} />
+      )}
+      <p className="hcard__foot">Click a body region for details · simulated data · trends: last 5 minutes</p>
     </aside>
   );
 }
@@ -170,15 +198,20 @@ export function HealthCard({
   viewer,
   onClose,
   onOpenTablet,
+  region,
+  onRegion,
 }: {
   id: AstronautId;
   mode: 'full' | 'cabin';
   viewer?: AstronautId;
   onClose: () => void;
   onOpenTablet?: (id: AstronautId) => void;
+  /** Full card: the body region shown in detail (from the body map or a click on the 3D astronaut). */
+  region?: BodyRegion | null;
+  onRegion?: (region: BodyRegion | null) => void;
 }) {
   return mode === 'full' ? (
-    <FullCard id={id} onClose={onClose} />
+    <FullCard id={id} onClose={onClose} region={region} onRegion={onRegion} />
   ) : (
     <CabinCard id={id} viewer={viewer} onClose={onClose} onOpenTablet={onOpenTablet} />
   );

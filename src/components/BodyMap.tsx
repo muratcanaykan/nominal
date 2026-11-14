@@ -1,6 +1,7 @@
 // Front-view body map: each region takes the colour of its worst reading, and dots show where the sensors sit.
 // The crew member's left side is on the viewer's right, as in a medical chart.
 
+import { useState } from 'react';
 import { REGION_LABELS, type BodyRegion } from '../domain/body';
 import { regionStates } from '../domain/bodymap';
 import type { RoomState } from '../domain/room';
@@ -9,6 +10,7 @@ import { isSuited } from '../domain/locations';
 import { LEVEL_NAMES, VITALS } from '../domain/vitals';
 import { levelClass } from './bits';
 import { readingNote, readingValue } from './health';
+import { RegionDetails, RegionSheet } from './RegionDetails';
 
 type Shape =
   | { kind: 'ellipse'; cx: number; cy: number; rx: number; ry: number }
@@ -59,7 +61,29 @@ const SUIT_SENSORS = [
   { x: 99, y: 58, label: 'Shoulder pressure sensor' },
 ];
 
-export function BodyMap({ s, state, compact }: { s: Snapshot; state: RoomState | undefined; compact?: boolean }) {
+/**
+ * Regions are clickable. The full panel shows the region details beside the map; compact maps call `onRegion` (or,
+ * without it, open the details in a window).
+ */
+export function BodyMap({
+  s,
+  state,
+  compact,
+  onRegion,
+  selected,
+}: {
+  s: Snapshot;
+  state: RoomState | undefined;
+  compact?: boolean;
+  onRegion?: (region: BodyRegion) => void;
+  selected?: BodyRegion | null;
+}) {
+  const [own, setOwn] = useState<BodyRegion | null>(null);
+  const active = selected !== undefined ? selected : own;
+  const pick = (region: BodyRegion) => {
+    if (onRegion) onRegion(region);
+    else setOwn((cur) => (cur === region ? null : region));
+  };
   const regions = regionStates(s, state);
   const suited = isSuited(state, s.astronautId);
   const sensors = suited ? [...BODY_SENSORS, ...SUIT_SENSORS] : BODY_SENSORS;
@@ -68,13 +92,29 @@ export function BodyMap({ s, state, compact }: { s: Snapshot; state: RoomState |
   );
 
   const map = (
-    <svg className={`bodymap${compact ? ' bodymap--compact' : ''}`} viewBox="0 0 140 232" role="img" aria-label="Body map">
+    <svg className={`bodymap${compact ? ' bodymap--compact' : ''}`} viewBox="0 0 140 232" role="group" aria-label="Body map: click a region for details">
       {suited && <ellipse className="bodymap__helmet" cx="70" cy="26" rx="23" ry="25" />}
       {REGION_ORDER.map((region) => {
         const st = regions[region];
         const level = s.connected ? (st?.level ?? 0) : 'nodata';
         return (
-          <g key={region} className={`bodymap__region ${levelClass(level)}${st && st.level > 0 ? ' is-alert' : ''}`}>
+          <g
+            key={region}
+            className={`bodymap__region ${levelClass(level)}${st && st.level > 0 ? ' is-alert' : ''}${active === region ? ' is-selected' : ''}`}
+            role="button"
+            tabIndex={0}
+            aria-label={`${REGION_LABELS[region]}${st && st.level > 0 ? `, ${LEVEL_NAMES[st.level]}` : ''}: show details`}
+            onClick={(e) => {
+              e.stopPropagation();
+              pick(region);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                pick(region);
+              }
+            }}
+          >
             <title>
               {REGION_LABELS[region]}
               {st && st.level > 0 ? ` · ${LEVEL_NAMES[st.level]}` : ''}
@@ -97,13 +137,26 @@ export function BodyMap({ s, state, compact }: { s: Snapshot; state: RoomState |
     </svg>
   );
 
-  if (compact) return map;
+  if (compact) {
+    return (
+      <>
+        {map}
+        {!onRegion && own && <RegionSheet region={own} s={s} state={state} onClose={() => setOwn(null)} />}
+      </>
+    );
+  }
 
   return (
     <div className="bodymap-panel">
       {map}
+      {active ? (
+        <div className="bodymap-panel__text">
+          <RegionDetails region={active} s={s} state={state} onClose={() => (onRegion ? onRegion(active) : setOwn(null))} />
+        </div>
+      ) : (
       <div className="bodymap-panel__text">
         <h3>Body map</h3>
+        <p className="bodymap-panel__tip">Click a region to see what it does, how spaceflight affects it and what to do.</p>
         {!s.connected ? (
           <p>No data from the sensors.</p>
         ) : findings.length === 0 ? (
@@ -128,6 +181,7 @@ export function BodyMap({ s, state, compact }: { s: Snapshot; state: RoomState |
             : 'Sensors: watch, temperature patch and glucose sensor. Suit sensors report only while suited.'}
         </p>
       </div>
+      )}
     </div>
   );
 }

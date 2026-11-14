@@ -8,7 +8,7 @@
 
 ## Demo
 
-- Live app: https://nasa.rteuceng.com
+- Live app: https://nominal.rteuceng.com
 - Demo video / slides: _coming soon_
 
 ## The challenge
@@ -29,7 +29,9 @@ that helps astronauts assess their own health and guides them on what to do.
   view only critical alerts and help calls are visible.
 - **Suit sensors and body map** — while a crew member wears the spacesuit (airlock or spacewalk), sensors in the
   helmet, gloves and shoulders report helmet CO₂, water in the helmet, fingertip temperature and suit contact pressure.
-  A body map on the tablet and in the medical officer's view colours the region that needs attention. A cold hand
+  A body map on the tablet and in the medical officer's view colours the region that needs attention. Every region of
+  the body map and of the 3D astronaut is clickable: it shows the live readings there, what the region does, how
+  spaceflight affects it, how it is measured, when to see the medical officer and how to prevent problems. A cold hand
   asks "Do your fingers feel numb?" on the watch before the medical officer is told. Joint pain can be reported from
   the watch; in the suit it is treated as possible decompression sickness.
 - **3D mission simulation** — the vehicle and the crew in 3D: move an astronaut between the modules, the airlock and a
@@ -99,6 +101,9 @@ Thresholds are prototype values and are not clinically validated. Each indicator
 - Watson N.F. et al., "Recommended Amount of Sleep for a Healthy Adult", Sleep 38(6), 2015.
 - NASA Human Research Program — Risk of Injury and Compromised Performance Due to EVA Operations (glove and shoulder
   injuries), Risk of Decompression Sickness, and behavioural conditions (Risks of Human Spaceflight).
+- NASA Human Research Program — Risks of Human Spaceflight on cardiovascular adaptations, spaceflight associated
+  neuro-ocular syndrome, bone loss and muscle loss (background for the body region explanations in
+  [`src/domain/regionInfo.ts`](src/domain/regionInfo.ts)).
 - Heus R., Daanen H.A.M., Havenith G., "Physiological criteria for functioning of hands in the cold: a review",
   Applied Ergonomics 26(1), 1995.
 - Anderson A. et al., in-suit sensor systems for characterising human–spacesuit interaction, International Conference
@@ -143,4 +148,9 @@ npm run dev
 
 ## Team
 
-_To be added._
+- Muratcan Aykan
+- Ece İrem Şaş
+- Rümeyda Sürmeli
+- Rümeyse Esilay Sarı
+- Zehra Yalçınkaya
+- Ramazan Giyici

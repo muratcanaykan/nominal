@@ -2,6 +2,7 @@
 // 3D vehicle.
 
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import type { BodyRegion } from '../domain/body';
 import type { AstronautId } from '../domain/crew';
 import { setSimFull } from '../lib/simFull';
 import { useInView } from '../lib/useInView';
@@ -66,6 +67,7 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
   const zoom = useRef(1);
   usePinchZoom(view, zoom);
   const [target, setTarget] = useState<AstronautId | null>(null);
+  const [region, setRegion] = useState<BodyRegion | null>(null);
   const [focusScreen, setFocusScreen] = useState(false);
   const [screenOpen, setScreenOpen] = useState(false);
   // Native full screen where the browser supports it; otherwise (iPhone) the view covers the page.
@@ -172,6 +174,11 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
               onSelect={(id) => {
                 closeScreen();
                 setTarget(id);
+                setRegion(null);
+              }}
+              onRegion={(id, r) => {
+                setTarget(id);
+                setRegion(r);
               }}
               focusScreen={focusScreen}
               onScreenClick={onScreenClick}
@@ -183,7 +190,7 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
           </Suspense>
         </SimBoundary>
         <p className="sim3d__hint">
-          Drag to rotate · Scroll to zoom · Click the cabin screen or an astronaut ·
+          Drag to rotate · Scroll to zoom · Click an astronaut, then a body part · Click the cabin screen ·
           Astronaut model: NASA 3D Resources · Simulated data
         </p>
         <div className="sim3d__buttons">
@@ -205,7 +212,19 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
             <span>{full ? 'Exit full screen' : 'Full screen'}</span>
           </button>
         </div>
-        {target && !focusScreen && <HealthCard key={target} id={target} mode="full" onClose={() => setTarget(null)} />}
+        {target && !focusScreen && (
+          <HealthCard
+            key={target}
+            id={target}
+            mode="full"
+            region={region}
+            onRegion={setRegion}
+            onClose={() => {
+              setTarget(null);
+              setRegion(null);
+            }}
+          />
+        )}
         {screenOpen && <CabinOverlay viewer={viewer} onClose={closeScreen} onOpenTablet={onOpenTablet} />}
       </div>
       <SimPanel
@@ -213,6 +232,7 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
         onTarget={(id) => {
           closeScreen();
           setTarget(id);
+          setRegion(null);
         }}
       />
     </div>

@@ -182,11 +182,14 @@ function Astronaut({
   v,
   selected,
   onSelect,
+  onRegion,
   positions,
   reduce,
   mode,
 }: {
   mode: SceneMode;
+  /** Click on a body part of the selected astronaut (simulation only). */
+  onRegion?: (id: AstronautId, region: BodyRegion) => void;
   v: CrewVisual;
   selected: boolean;
   onSelect: (id: AstronautId) => void;
@@ -318,7 +321,10 @@ function Astronaut({
       ref={group}
       onClick={(e) => {
         e.stopPropagation();
-        onSelect(v.id);
+        // Each body mesh has one draw group per region; the hit face tells which region was clicked.
+        const index = e.face?.materialIndex;
+        if (selected && onRegion && index !== undefined && REGIONS[index]) onRegion(v.id, REGIONS[index]);
+        else onSelect(v.id);
       }}
       onPointerOver={() => (document.body.style.cursor = 'pointer')}
       onPointerOut={() => (document.body.style.cursor = '')}
@@ -337,12 +343,12 @@ function Astronaut({
         <mesh geometry={parts.legR.geometry} material={materials} />
       </group>
       {visor && <mesh geometry={visor} material={visorMaterial} />}
-      <mesh ref={halo} visible={false}>
+      <mesh ref={halo} visible={false} raycast={() => null}>
         <sphereGeometry args={[0.9, 32, 16]} />
         <meshBasicMaterial transparent depthWrite={false} blending={THREE.AdditiveBlending} side={THREE.BackSide} />
       </mesh>
       {selected && (
-        <mesh ref={ring} position={[0, -HEIGHT / 2 - 0.08, 0]} rotation={[Math.PI / 2, 0, 0]}>
+        <mesh ref={ring} position={[0, -HEIGHT / 2 - 0.08, 0]} rotation={[Math.PI / 2, 0, 0]} raycast={() => null}>
           <torusGeometry args={[0.55, 0.018, 8, 64, Math.PI * 1.6]} />
           <meshBasicMaterial color={ACCENT} toneMapped={false} />
         </mesh>
@@ -909,11 +915,14 @@ interface SceneProps {
   onSelect: (id: AstronautId) => void;
   focusScreen: boolean;
   onScreenClick?: () => void;
+  /** Click on a body part of the selected astronaut. */
+  onRegion?: (id: AstronautId, region: BodyRegion) => void;
 }
 
 function Scene({
   selected,
   onSelect,
+  onRegion,
   focusScreen,
   onScreenClick,
   zoom,
@@ -942,7 +951,16 @@ function Scene({
       <Planet profile={profile} />
       <Vehicle moduleLevels={moduleLevels} />
       {crew.map((v) => (
-        <Astronaut key={v.id} v={v} selected={selected === v.id} onSelect={onSelect} positions={positions} reduce={reduce} mode={mode} />
+        <Astronaut
+          key={v.id}
+          v={v}
+          selected={selected === v.id}
+          onSelect={onSelect}
+          onRegion={mode === 'sim' ? onRegion : undefined}
+          positions={positions}
+          reduce={reduce}
+          mode={mode}
+        />
       ))}
       {crew
         .filter((v) => v.location === 'eva')
