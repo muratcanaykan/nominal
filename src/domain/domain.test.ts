@@ -7,6 +7,8 @@ import { radiationAdvisory } from '../data/spaceWeather';
 import { dutyStatus, seesCrewStatus, tabletViews } from './roles';
 import { forecast } from './forecast';
 import { dose } from './radiation';
+import { personBeats, personView } from './narrator';
+import { scenarioPatch } from './scenarios';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
@@ -283,6 +285,18 @@ describe('mood check-in reminders', () => {
 });
 
 describe('early warning', () => {
+  it('does not mistake a sudden jump for a trend', () => {
+    for (const sc of ['fever', 'warning', 'helmetCO2', 'coldHand'] as const) {
+      for (const id of ['01', '02', '03', '04'] as const) {
+        const t0 = 4_000_000;
+        let state = newRoomState(0);
+        state.locations = { [id]: 'eva' };
+        state = applyPatch(state, scenarioPatch(id, sc, t0));
+        for (let t = t0; t < t0 + 60_000; t += 500) expect(forecast(state, id, t), `${sc} ${id} at ${t - t0} ms`).toBeNull();
+      }
+    }
+  });
+
   it('stays quiet without scenarios (sensor noise is not a trend)', () => {
     const state = newRoomState(0);
     state.locations = { '01': 'eva', '03': 'airlock' };
@@ -323,5 +337,33 @@ describe('radiation dose', () => {
     expect(spe.rateUsvH).toBeGreaterThan(eva.rateUsvH);
     expect(spe.missionMsv).toBeGreaterThan(inside.missionMsv);
     expect(inside.careerShare).toBeLessThan(0.1);
+  });
+});
+
+describe('narrator', () => {
+  const view = (state: ReturnType<typeof newRoomState>, now: number) => personView(state, '02', snapshot(state, '02', now), now);
+
+  it('says who is told at each level', () => {
+    const quiet = newRoomState(0);
+    const before = view(quiet, 1000);
+    const warn = applyPatch(quiet, scenarioPatch('02', 'warning', 0));
+    const w = personBeats(before, view(warn, 10_000), '02', snapshot(warn, '02', 10_000), warn);
+    expect(w).toHaveLength(1);
+    expect(w[0].told).toEqual(['watch', 'cmo']);
+    const crit = applyPatch(quiet, scenarioPatch('02', 'critical', 0));
+    const c = personBeats(before, view(crit, 10_000), '02', snapshot(crit, '02', 10_000), crit);
+    expect(c[0].told).toEqual(['watch', 'cmo', 'cabin', 'earth']);
+    expect(c[0].title).toContain('Critical');
+  });
+
+  it('explains a sensor waiting for confirmation and a lost signal', () => {
+    const quiet = newRoomState(0);
+    const before = view(quiet, 1000);
+    const low = applyPatch(quiet, scenarioPatch('02', 'lowGlucose', 0));
+    expect(personBeats(before, view(low, 10_000), '02', snapshot(low, '02', 10_000), low)[0].text).toContain('fingerstick');
+    const off = applyPatch(quiet, scenarioPatch('02', 'nodata', 0));
+    const n = personBeats(before, view(off, 10_000), '02', snapshot(off, '02', 10_000), off);
+    expect(n[0].tone).toBe('nodata');
+    expect(n[0].text).toContain('neither healthy nor an emergency');
   });
 });

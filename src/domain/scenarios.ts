@@ -69,8 +69,8 @@ export function activeScenario(state: RoomState | null | undefined, id: Astronau
   });
 }
 
-/** Patch that clears an astronaut's previous scenario and starts a new one. */
-export function scenarioPatch(id: AstronautId, scenario: ScenarioId, now: number): Patch {
+/** Patch that clears an astronaut's previous scenario and starts a new one. `rampMs` overrides the scenario's pace. */
+export function scenarioPatch(id: AstronautId, scenario: ScenarioId, now: number, rampMs?: number): Patch {
   const s = SCENARIOS[scenario];
   const patch: Patch = {
     [`overrides/${id}`]: null,
@@ -83,7 +83,7 @@ export function scenarioPatch(id: AstronautId, scenario: ScenarioId, now: number
   if (s.targets) {
     const overrides: Record<string, unknown> = {};
     for (const [vital, target] of Object.entries(s.targets)) {
-      overrides[vital] = { target, startAt: now, rampMs: s.rampMs ?? RAMP_MS };
+      overrides[vital] = { target, startAt: now, rampMs: rampMs ?? s.rampMs ?? RAMP_MS };
     }
     patch[`overrides/${id}`] = overrides;
   }

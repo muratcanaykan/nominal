@@ -2,9 +2,11 @@
 // screen, the crew's watches and that person's own tablet. Scenarios and device links open as side panels.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Link } from 'react-router';
+import { Link, useSearchParams } from 'react-router';
 import { Avatar } from '../components/Avatar';
 import { CabinScreen } from '../components/CabinScreen';
+import { NarratorFeed } from '../components/Narrator';
+import { Tour } from '../components/Tour';
 import { Qr } from '../components/Qr';
 import { MissionControls, ScenarioControls } from '../components/ScenarioPanel';
 import { SimSection } from '../components/SimSection';
@@ -16,6 +18,7 @@ import { locationLabel } from '../domain/locations';
 import { canSee } from '../domain/roles';
 import { useRoomId } from '../lib/RoomRoute';
 import { useNow, useRoom } from '../lib/useRoom';
+import { useNarrator } from '../lib/useNarrator';
 import { requestTablet } from '../lib/tabletRequest';
 import { readViewer, saveViewer } from '../lib/viewer';
 
@@ -82,6 +85,24 @@ function DeviceLinks({ roomId }: { roomId: string }) {
       </div>
     </section>
   );
+}
+
+const NARRATOR_KEY = 'nominal:narrator';
+
+function readNarrator(): boolean {
+  try {
+    return localStorage.getItem(NARRATOR_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
+function saveNarrator(on: boolean) {
+  try {
+    localStorage.setItem(NARRATOR_KEY, on ? 'on' : 'off');
+  } catch {
+    /* storage unavailable */
+  }
 }
 
 const roleLabel = (id: AstronautId) => (CREW_BY_ID[id].cmo ? 'Medical officer' : CREW_BY_ID[id].role);
@@ -186,6 +207,23 @@ export function Hub() {
   const [persona, setPersona] = useState<AstronautId>(() => readViewer('02'));
   const [drawer, setDrawer] = useState<DrawerId | null>(null);
   const close = useCallback(() => setDrawer(null), []);
+  const [params, setParams] = useSearchParams();
+  const [tour, setTour] = useState(() => params.get('tour') === '1');
+  const [narrator, setNarrator] = useState(readNarrator);
+  const narration = useNarrator(narrator && !tour);
+  useEffect(() => {
+    if (params.has('tour')) setParams({}, { replace: true });
+  }, [params, setParams]);
+  const openTour = () => {
+    setDrawer(null);
+    setTour(true);
+  };
+  // The tour shows the devices of the people it follows, without changing who you picked.
+  const tourPersona = useCallback((id: AstronautId) => setPersona(id), []);
+  const closeTour = useCallback(() => {
+    setTour(false);
+    setPersona(readViewer('02'));
+  }, []);
   const toggle = (d: DrawerId) => setDrawer((cur) => (cur === d ? null : d));
   const pick = (id: AstronautId) => {
     setPersona(id);
@@ -209,8 +247,11 @@ export function Hub() {
             </h1>
           </div>
           <div className="hub__actions">
+            <button className="btn-primary hub__tour" onClick={openTour}>
+              <span aria-hidden="true">▶</span> 1-minute tour
+            </button>
             <button
-              className={`btn-primary${drawer === 'scenarios' ? ' is-active' : ''}`}
+              className={`btn-secondary${drawer === 'scenarios' ? ' is-active' : ''}`}
               aria-expanded={drawer === 'scenarios'}
               aria-controls="drawer-scenarios"
               onClick={() => toggle('scenarios')}
@@ -226,6 +267,20 @@ export function Hub() {
               Open on devices
             </button>
             <CopyLink />
+            <button
+              className={`hub__narr-toggle${narrator ? ' is-on' : ''}`}
+              role="switch"
+              aria-checked={narrator}
+              onClick={() => {
+                setNarrator(!narrator);
+                saveNarrator(!narrator);
+              }}
+            >
+              <span className="hub__narr-track" aria-hidden="true">
+                <span />
+              </span>
+              Narrator
+            </button>
           </div>
         </header>
 
@@ -258,7 +313,7 @@ export function Hub() {
           </div>
           <div className="crew-watches">
             {CREW.map((a) => (
-              <div key={a.id} className={`crew-watch${a.id === persona ? ' is-you' : ''}`}>
+              <div key={a.id} id={`watch-${a.id}`} className={`crew-watch${a.id === persona ? ' is-you' : ''}`}>
                 <WatchFace astronautId={a.id} now={now} />
                 <button className="crew-watch__label" aria-pressed={a.id === persona} onClick={() => pick(a.id)}>
                   <span className="crew-watch__name">
@@ -290,6 +345,8 @@ export function Hub() {
       </main>
 
       <ProfileSwitcher persona={persona} onPick={pick} />
+      <NarratorFeed beats={narration.beats} onDismiss={narration.dismiss} />
+      {tour && <Tour onPersona={tourPersona} onClose={closeTour} />}
 
       <Drawer id="drawer-scenarios" title="Scenarios" open={drawer === 'scenarios'} onClose={close}>
         <ScenarioControls key={persona} initialTarget={persona} />

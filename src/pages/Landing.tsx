@@ -10,13 +10,13 @@ export function Landing() {
   const [error, setError] = useState('');
   const [code, setCode] = useState('');
 
-  async function start() {
+  async function start(tour = false) {
     setBusy(true);
     setError('');
     const id = newRoomId();
     try {
       await createRoom(id);
-      navigate(`/r/${id}`);
+      navigate(tour ? `/r/${id}?tour=1` : `/r/${id}`);
     } catch (e) {
       setError(syncErrorMessage(e));
     } finally {
@@ -47,8 +47,11 @@ export function Landing() {
         </p>
 
         <div className="landing__actions">
-          <button className="btn-primary" onClick={start} disabled={busy}>
-            {busy ? 'Starting…' : 'Start a live demo'}
+          <button className="btn-primary" onClick={() => start(true)} disabled={busy}>
+            {busy ? 'Starting…' : '▶ Take the 1-minute tour'}
+          </button>
+          <button className="btn-secondary" onClick={() => start()} disabled={busy}>
+            Start a live demo
           </button>
           <form className="landing__join" onSubmit={join}>
             <label htmlFor="room-code">Join a demo</label>

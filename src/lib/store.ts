@@ -112,9 +112,9 @@ export class RoomStore {
     return this.update({ profile });
   }
 
-  runScenario(id: AstronautId, scenario: ScenarioId) {
+  runScenario(id: AstronautId, scenario: ScenarioId, rampMs?: number) {
     return this.update({
-      ...scenarioPatch(id, scenario, this.now()),
+      ...scenarioPatch(id, scenario, this.now(), rampMs),
       [`help/${id}`]: null,
       [`glucoseChecks/${id}`]: null,
     });

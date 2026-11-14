@@ -8,7 +8,7 @@
 
 ## Demo
 
-- Live app: https://nominal.rteuceng.com
+- Live app: https://nominal.rteuceng.com — press **Take the 1-minute tour** for a guided walkthrough
 - Demo video / slides: _coming soon_
 
 ## The challenge
@@ -42,13 +42,19 @@ that helps astronauts assess their own health and guides them on what to do.
   screen hangs inside the habitat module; clicking it opens the live cabin screen. The view has a full-screen mode.
 - **Early warning** — when a reading drifts steadily away from the crew member's own baseline toward the next alert
   level, the watch, the tablet and the medical officer see how soon it will get there (for example "Blood oxygen
-  falling · Warning in about 1 min"), so the crew can act before the alert. Normal sensor noise does not trigger it.
+  falling · Warning in about 1 min"), so the crew can act before the alert. Normal sensor noise does not trigger it, and neither does a sudden jump
+  that has already stopped: the change has to be gradual and still going.
 - **Radiation dose** — every crew member's tablet shows a simulated personal dosimeter: the dose rate now, what
   raises it (a spacewalk has less shielding; a solar particle event from NASA DONKI or the demo raises it sharply) and
   the dose received this mission against the career limit. The medical officer sees one line per crew member. Base
   rates come from published measurements; the spacewalk and solar event factors are prototype assumptions.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
+- **Guided tour** — one health event played live in about a minute: a spacewalker's blood oxygen drifts down, and
+  each step highlights the screen that changes and who is told, from the astronaut's own watch to the medical officer,
+  the whole crew and flight surgeons on Earth.
+- **Narrator** — while you play scenarios, short captions say what just happened and who was told (own watch,
+  medical officer, cabin screen, Earth). It can be turned off in the demo header.
 - **Live demo** — pick a crew member (the profile button at the bottom left) to see the mission through their devices: the cabin screen, the crew's watches and
   that person's tablet. Scenarios change the simulated readings; every open screen updates live.
 
