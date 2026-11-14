@@ -31,6 +31,9 @@ that helps astronauts assess their own health and guides them on what to do.
   A body map on the tablet and in the medical officer's view colours the region that needs attention. A cold hand
   asks "Do your fingers feel numb?" on the watch before the medical officer is told. Joint pain can be reported from
   the watch; in the suit it is treated as possible decompression sickness.
+- **3D mission simulation** — the vehicle and the crew in 3D: move an astronaut between the modules, the airlock and a
+  spacewalk, and change their readings with sliders. Suit regions glow in the alert colour, and a simulated solar
+  particle event shows as a particle stream. Every screen follows the simulation.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
 - **Live demo** — pick a crew member to see the mission through their devices: the cabin screen, the crew's watches and
@@ -38,7 +41,8 @@ that helps astronauts assess their own health and guides them on what to do.
 
 ## How it works
 
-- React + TypeScript single-page app, built with Vite.
+- React + TypeScript single-page app, built with Vite. The 3D view uses three.js with React Three Fiber and loads only
+  when it is shown.
 - A deterministic simulator generates indicator values from time, so every screen shows the same numbers.
 - Firebase Realtime Database syncs user actions (help requests, acknowledgements, mood check-ins) between devices in
   real time. Each demo session is a separate room.
@@ -56,6 +60,12 @@ that helps astronauts assess their own health and guides them on what to do.
   Comprehensive Metabolic Panel. Each simulated astronaut's glucose baseline comes from the real pre-flight glucose of
   one anonymised Inspiration4 crew member; the medical officer view shows that baseline and the post-landing value
   ([`scripts/fetch-osdr.mjs`](scripts/fetch-osdr.mjs) → [`src/data/osdr-inspiration4.json`](src/data/osdr-inspiration4.json)).
+
+- NASA 3D Resources — [Astronaut](https://science.nasa.gov/3d-resources/) model
+  ([GitHub mirror](https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Astronaut)), used in the 3D
+  simulation. For the web the mesh was decompressed and its textures removed
+  ([`public/models/astronaut-web.glb`](public/models/astronaut-web.glb)); the app splits it into body regions and
+  renders it with its own materials.
 
 ## Space agency partner resources
 

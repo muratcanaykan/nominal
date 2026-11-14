@@ -161,6 +161,11 @@ export class RoomStore {
     return this.update({ [`glucoseChecks/${id}`]: { value, at: this.now() } });
   }
 
+  /** Moves one indicator toward a value (simulation sliders). */
+  setVital(id: AstronautId, vital: VitalId, target: number) {
+    return this.update({ [`overrides/${id}/${vital}`]: { target, startAt: this.now(), rampMs: 1500 } });
+  }
+
   setLocation(id: AstronautId, location: LocationId) {
     return this.update({ [`locations/${id}`]: location });
   }
