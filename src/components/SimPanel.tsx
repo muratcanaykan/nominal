@@ -7,6 +7,7 @@ import { isSuited, LOCATION_IDS, LOCATIONS, locationOf } from '../domain/locatio
 import { snapshot, type Reading } from '../domain/sim';
 import { LEVEL_NAMES, VITALS, type VitalId } from '../domain/vitals';
 import { useNow, useRoom, useStore } from '../lib/useRoom';
+import { Avatar } from './Avatar';
 import { levelClass, ShortLabel } from './bits';
 
 interface SliderDef {
@@ -108,7 +109,10 @@ export function SimPanel({ target, onTarget }: { target: AstronautId | null; onT
           return (
             <>
               <div className={`sim-panel__who ${levelClass(s.status)}`}>
-                <strong>{a.name}</strong>
+                <strong className="sim-panel__name">
+                  <Avatar id={target} size={24} />
+                  {a.name}
+                </strong>
                 <span>
                   {LOCATIONS[where].label} · {s.status === 'nodata' ? 'No data' : LEVEL_NAMES[s.worst]}
                 </span>

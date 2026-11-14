@@ -9,6 +9,7 @@ import { crewSummary, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { formatAgo, formatDelay, levelClass } from './bits';
+import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 
@@ -70,7 +71,8 @@ function CrewCard({ s, state, now }: { s: Snapshot; state: RoomState | undefined
   return (
     <article className={`cmo-card ${levelClass(s.status)}`}>
       <header className="cmo-card__head">
-        <div>
+        <Avatar id={a.id} size={34} />
+        <div className="cmo-card__who">
           <h3>{a.name}</h3>
           <span>
             {a.role} · {locationLabel(state, a.id)}

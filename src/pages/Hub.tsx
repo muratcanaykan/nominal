@@ -1,8 +1,9 @@
 // Live demo: one mission seen from the crew's side. Pick a crew member to see what they can see: the shared cabin
 // screen, the crew's watches and that person's own tablet. Scenarios and device links open as side panels.
 
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { Avatar } from '../components/Avatar';
 import { CabinScreen } from '../components/CabinScreen';
 import { Qr } from '../components/Qr';
 import { SimSection } from '../components/SimSection';
@@ -209,38 +210,78 @@ function DeviceLinks({ roomId }: { roomId: string }) {
   );
 }
 
-function RolePicker({ persona, onPick }: { persona: AstronautId; onPick: (id: AstronautId) => void }) {
+const roleLabel = (id: AstronautId) => (CREW_BY_ID[id].cmo ? 'Medical officer' : CREW_BY_ID[id].role);
+
+/** "Who am I" button at the bottom left: choose the crew member whose devices the page shows. */
+function ProfileSwitcher({ persona, onPick }: { persona: AstronautId; onPick: (id: AstronautId) => void }) {
   const { state } = useRoom();
+  const [open, setOpen] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const you = CREW_BY_ID[persona];
+  useEffect(() => {
+    if (!open) return;
+    const onDown = (e: PointerEvent) => {
+      if (!box.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', onDown);
+    window.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('pointerdown', onDown);
+      window.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
   return (
-    <section className="roles" aria-labelledby="roles-title">
-      <div className="roles__intro">
-        <h2 id="roles-title" className="panel__title">
-          View as
-        </h2>
-        <p>Pick a crew member to see the mission through their devices. Use Scenarios to change their readings.</p>
-      </div>
-      <div className="roles__list" role="radiogroup" aria-labelledby="roles-title">
-        {CREW.map((a) => (
-          <button
-            key={a.id}
-            role="radio"
-            aria-checked={persona === a.id}
-            aria-label={`${a.name}, ${a.cmo ? 'Medical officer' : a.role}, ${locationLabel(state, a.id)}`}
-            className={`role-card${persona === a.id ? ' is-active' : ''}`}
-            onClick={() => onPick(a.id)}
-          >
-            <strong>{a.name}</strong>
-            <span>{a.cmo ? 'Medical officer' : a.role}</span>
-            <small>{locationLabel(state, a.id)}</small>
-          </button>
-        ))}
-      </div>
-      <ul className="roles__sees" aria-label={`What ${CREW_BY_ID[persona].name} can see`}>
-        {canSee(persona).map((t) => (
-          <li key={t}>{t}</li>
-        ))}
-      </ul>
-    </section>
+    <div ref={box} className={`profile${open ? ' is-open' : ''}`}>
+      {open && (
+        <div className="profile__panel" role="dialog" aria-labelledby="profile-title">
+          <h2 id="profile-title" className="panel__title">
+            View as
+          </h2>
+          <p className="profile__hint">Pick a crew member to see the mission through their devices.</p>
+          <div className="profile__list" role="radiogroup" aria-labelledby="profile-title">
+            {CREW.map((a) => (
+              <button
+                key={a.id}
+                role="radio"
+                aria-checked={persona === a.id}
+                className={`profile__item${persona === a.id ? ' is-active' : ''}`}
+                onClick={() => {
+                  onPick(a.id);
+                  setOpen(false);
+                }}
+              >
+                <Avatar id={a.id} size={36} />
+                <span className="profile__text">
+                  <strong>{a.name}</strong>
+                  <span>{roleLabel(a.id)}</span>
+                  <small>{locationLabel(state, a.id)}</small>
+                </span>
+              </button>
+            ))}
+          </div>
+          <h3 className="panel__title">{you.name} can see</h3>
+          <ul className="profile__sees">
+            {canSee(persona).map((t) => (
+              <li key={t}>{t}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <button className="profile__button" aria-expanded={open} aria-haspopup="dialog" onClick={() => setOpen((o) => !o)}>
+        <Avatar id={persona} size={36} />
+        <span className="profile__text">
+          <small>Viewing as</small>
+          <strong>{you.name}</strong>
+          <span>{roleLabel(persona)}</span>
+        </span>
+        <span className="profile__chevron" aria-hidden="true">
+          {open ? '▾' : '▴'}
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -309,8 +350,6 @@ export function Hub() {
           </div>
         </header>
 
-        <RolePicker persona={persona} onPick={pick} />
-
         <section className="stage" aria-labelledby="stage-sim">
           <div className="stage__head">
             <h2 id="stage-sim" className="panel__title">
@@ -343,7 +382,10 @@ export function Hub() {
               <div key={a.id} className={`crew-watch${a.id === persona ? ' is-you' : ''}`}>
                 <WatchFace astronautId={a.id} now={now} />
                 <button className="crew-watch__label" aria-pressed={a.id === persona} onClick={() => pick(a.id)}>
-                  <strong>{a.name}</strong>
+                  <span className="crew-watch__name">
+                    <Avatar id={a.id} size={22} />
+                    <strong>{a.name}</strong>
+                  </span>
                   <span>{a.id === persona ? 'You' : 'View as'}</span>
                 </button>
               </div>
@@ -367,6 +409,8 @@ export function Hub() {
           <Tablet key={persona} astronautId={persona} />
         </section>
       </main>
+
+      <ProfileSwitcher persona={persona} onPick={pick} />
 
       <Drawer id="drawer-scenarios" title="Scenarios" open={drawer === 'scenarios'} onClose={close}>
         <ScenarioControls key={persona} initialTarget={persona} />

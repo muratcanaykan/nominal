@@ -39,7 +39,7 @@ that helps astronauts assess their own health and guides them on what to do.
   screen hangs inside the habitat module; clicking it opens the live cabin screen. The view has a full-screen mode.
 - **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
   whole crew and flight surgeons on Earth (with realistic communication delay).
-- **Live demo** — pick a crew member to see the mission through their devices: the cabin screen, the crew's watches and
+- **Live demo** — pick a crew member (the profile button at the bottom left) to see the mission through their devices: the cabin screen, the crew's watches and
   that person's tablet. Scenarios change the simulated readings; every open screen updates live.
 
 ## How it works

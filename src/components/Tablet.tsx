@@ -11,6 +11,7 @@ import { LEVEL_NAMES, routingFor, VITALS } from '../domain/vitals';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { useNow, useRoom } from '../lib/useRoom';
 import { formatAgo, levelClass } from './bits';
+import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 import { MedicalOverview, PinGate, readUnlocked } from './MedicalView';
@@ -121,8 +122,9 @@ function CrewStatus({ state, now }: { state: RoomState | undefined; now: number 
           return (
             <li key={a.id} className={`duty ${DUTY_LEVEL[d]}`}>
               <div className="duty__who">
-                <span className="duty__dot" aria-hidden="true" />
+                <Avatar id={a.id} size={26} />
                 <strong>{a.name}</strong>
+                <span className="duty__dot" aria-hidden="true" />
               </div>
               <span className="duty__where">
                 {a.role} · {locationLabel(state, a.id)}
@@ -163,6 +165,7 @@ export const Tablet = memo(function Tablet({ astronautId, initialView }: { astro
       <div className="tablet__screen">
         <header className="tablet__bar">
           <div className="tablet__owner">
+            <Avatar id={astronautId} size={32} />
             <strong>{a.name}</strong>
             <span>{a.role}</span>
           </div>
