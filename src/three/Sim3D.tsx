@@ -2,7 +2,7 @@
 // Astronaut model: NASA 3D Resources ("Astronaut"), rendered with our own materials. All data is simulated.
 
 import { Edges, Html, Line, OrbitControls, Stars, useGLTF } from '@react-three/drei';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import { useEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
@@ -836,14 +836,24 @@ function CameraRig({
   reduce,
   focusScreen,
   zoom,
+  touchScroll,
 }: {
   selected: AstronautId | null;
   positions: Map<AstronautId, THREE.Vector3>;
   reduce: boolean;
   focusScreen: boolean;
   zoom: { current: number };
+  touchScroll: boolean;
 }) {
   const controls = useRef<{ target: THREE.Vector3; update: () => void } | null>(null);
+  const gl = useThree((s) => s.gl);
+  const connected = useThree((s) => s.events.connected) as HTMLElement | undefined;
+  // The orbit controls block all browser touch gestures on the element they listen to; this runs after them and
+  // lets vertical page scrolling through when asked. Pinch zoom is handled outside the canvas (usePinchZoom).
+  useEffect(() => {
+    const el = connected ?? gl.domElement;
+    el.style.touchAction = touchScroll ? 'pan-y' : 'none';
+  }, [gl, connected, touchScroll]);
   const idleAt = useRef(0);
   const last = useRef<string | undefined>(undefined);
   const clock = useRef(0);
@@ -903,6 +913,11 @@ interface SceneProps {
   active?: boolean;
   /** `light` renders fewer pixels and skips multisampling, for full screen on large displays. */
   quality?: 'normal' | 'light';
+  /**
+   * On touch screens, let a vertical one-finger swipe scroll the page; horizontal swipes still turn the view and
+   * two fingers pinch to zoom. Off in full screen, where one finger turns the view freely.
+   */
+  touchScroll?: boolean;
   /** Camera distance multiplier, changed by the wheel and the + / - buttons outside the canvas. */
   zoom: { current: number };
   selected: AstronautId | null;
@@ -911,7 +926,17 @@ interface SceneProps {
   onScreenClick?: () => void;
 }
 
-function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce, mode = 'sim', quality = 'normal' }: SceneProps & { reduce: boolean }) {
+function Scene({
+  selected,
+  onSelect,
+  focusScreen,
+  onScreenClick,
+  zoom,
+  reduce,
+  mode = 'sim',
+  quality = 'normal',
+  touchScroll = false,
+}: SceneProps & { reduce: boolean }) {
   const { crew, profile, solar, screen } = useCrewVisuals(mode);
   const positions = useMemo(() => new Map<AstronautId, THREE.Vector3>(), []);
   const moduleLevels: Partial<Record<LocationId, Level>> = {};
@@ -943,7 +968,7 @@ function Scene({ selected, onSelect, focusScreen, onScreenClick, zoom, reduce, m
       {solar && <SolarStream />}
       <CabinScreen3D info={screen} focused={focusScreen} onOpen={mode === 'sim' ? onScreenClick : undefined} />
       <DataFlow crew={crew} positions={positions} profile={profile} mode={mode} />
-      <CameraRig selected={selected} positions={positions} reduce={reduce} focusScreen={focusScreen} zoom={zoom} />
+      <CameraRig selected={selected} positions={positions} reduce={reduce} focusScreen={focusScreen} zoom={zoom} touchScroll={touchScroll} />
       {/* The cabin view skips post-processing to stay light next to the main simulation. */}
       {mode === 'sim' && (
         <EffectComposer multisampling={quality === 'light' ? 0 : 4}>

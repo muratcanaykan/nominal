@@ -5,6 +5,7 @@ import { Component, lazy, Suspense, useRef, useState, type ReactNode } from 'rea
 import type { AstronautId } from '../domain/crew';
 import { useSimFull } from '../lib/simFull';
 import { useInView } from '../lib/useInView';
+import { usePinchZoom } from '../lib/usePinchZoom';
 
 const Sim3D = lazy(() => import('../three/Sim3D'));
 
@@ -24,6 +25,7 @@ export function CabinView3D({ fallback, foreground = false }: { fallback: ReactN
   // While the simulation is in full screen this page view is hidden behind it, so it pauses.
   const simFull = useSimFull();
   const zoom = useRef(1);
+  usePinchZoom(box, zoom);
   const [selected, setSelected] = useState<AstronautId | null>(null);
   return (
     <div ref={box} className="cabin__3d">
@@ -31,6 +33,7 @@ export function CabinView3D({ fallback, foreground = false }: { fallback: ReactN
         <Suspense fallback={fallback}>
           <Sim3D
             mode="cabin"
+            touchScroll
             active={visible && (foreground || !simFull)}
             zoom={zoom}
             selected={selected}

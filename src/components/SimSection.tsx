@@ -5,14 +5,10 @@ import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, ty
 import type { AstronautId } from '../domain/crew';
 import { setSimFull } from '../lib/simFull';
 import { useInView } from '../lib/useInView';
+import { clampZoom, usePinchZoom } from '../lib/usePinchZoom';
 import { useNow } from '../lib/useRoom';
 import { CabinScreen } from './CabinScreen';
 import { SimPanel } from './SimPanel';
-
-/** Camera distance multiplier limits: 1 is the default framing, smaller is closer. */
-const ZOOM_MIN = 0.35;
-const ZOOM_MAX = 2.4;
-const clampZoom = (z: number) => Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z));
 
 // three.js is large: load the 3D view only when the page needs it.
 const Sim3D = lazy(() => import('../three/Sim3D'));
@@ -56,6 +52,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
   const box = useRef<HTMLDivElement>(null);
   const view = useRef<HTMLDivElement>(null);
   const zoom = useRef(1);
+  usePinchZoom(view, zoom);
   const [target, setTarget] = useState<AstronautId | null>(null);
   const [focusScreen, setFocusScreen] = useState(false);
   const [screenOpen, setScreenOpen] = useState(false);
@@ -169,6 +166,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
               // While the cabin screen is open in front, its own 3D view runs and this one pauses (only one renders).
               active={(onScreen || full) && !screenOpen}
               quality={full ? 'light' : 'normal'}
+              touchScroll={!full}
             />
           </Suspense>
         </SimBoundary>
