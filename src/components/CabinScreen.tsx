@@ -111,12 +111,15 @@ export function CabinScreen({
   viewer = '04',
   locations = '3d',
   foreground = false,
+  onOpenTablet,
 }: {
   now: number;
   viewer?: AstronautId;
   locations?: '3d' | 'map';
   /** Opened in front of the full-screen simulation: keep its 3D view running. */
   foreground?: boolean;
+  /** Where the page also shows the viewer's tablet: "Open on my tablet" from a crew member card. */
+  onOpenTablet?: (id: AstronautId) => void;
 }) {
   const { state } = useRoom();
   const summary = crewSummary(state ?? undefined, now);
@@ -168,7 +171,7 @@ export function CabinScreen({
         </AnimatePresence>
       </div>
 
-      {locations === '3d' ? <CabinView3D fallback={map} foreground={foreground} viewer={viewer} /> : map}
+      {locations === '3d' ? <CabinView3D fallback={map} foreground={foreground} viewer={viewer} onOpenTablet={onOpenTablet} /> : map}
 
       <ul className="cabin__crew">
         {crew.map((a) => {

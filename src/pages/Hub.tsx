@@ -16,6 +16,7 @@ import { locationLabel } from '../domain/locations';
 import { canSee } from '../domain/roles';
 import { useRoomId } from '../lib/RoomRoute';
 import { useNow, useRoom } from '../lib/useRoom';
+import { requestTablet } from '../lib/tabletRequest';
 import { readViewer, saveViewer } from '../lib/viewer';
 
 type DrawerId = 'scenarios' | 'devices';
@@ -191,6 +192,11 @@ export function Hub() {
     saveViewer(id);
   };
   const you = CREW_BY_ID[persona];
+  // "Open on my tablet" from a cabin screen card: the tablet below shows the values, never the shared screen.
+  const openTablet = useCallback((target: AstronautId) => {
+    requestTablet(target);
+    document.getElementById('stage-tablet')?.closest('section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, []);
 
   return (
     <div className={`mission${drawer ? ' has-drawer' : ''}`}>
@@ -230,7 +236,7 @@ export function Hub() {
             </h2>
             <span>Pick an astronaut, move them and change their readings. Every screen below follows.</span>
           </div>
-          <SimSection viewer={persona} />
+          <SimSection viewer={persona} onOpenTablet={openTablet} />
         </section>
 
         <section className="stage" aria-labelledby="stage-cabin">
@@ -240,7 +246,7 @@ export function Hub() {
             </h2>
             <span>Shared display in the vehicle · everyone on board sees it · you act as {you.name}</span>
           </div>
-          <CabinScreen now={now} viewer={persona} />
+          <CabinScreen now={now} viewer={persona} onOpenTablet={openTablet} />
         </section>
 
         <section className="stage" aria-labelledby="stage-watches">

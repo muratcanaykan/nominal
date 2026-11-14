@@ -20,7 +20,17 @@ class Fallback extends Component<{ fallback: ReactNode; children: ReactNode }, {
   }
 }
 
-export function CabinView3D({ fallback, foreground = false, viewer }: { fallback: ReactNode; foreground?: boolean; viewer?: AstronautId }) {
+export function CabinView3D({
+  fallback,
+  foreground = false,
+  viewer,
+  onOpenTablet,
+}: {
+  fallback: ReactNode;
+  foreground?: boolean;
+  viewer?: AstronautId;
+  onOpenTablet?: (id: AstronautId) => void;
+}) {
   const box = useRef<HTMLDivElement>(null);
   const visible = useInView(box);
   // While the simulation is in full screen this page view is hidden behind it, so it pauses.
@@ -43,7 +53,7 @@ export function CabinView3D({ fallback, foreground = false, viewer }: { fallback
         </Suspense>
       </Fallback>
       {!selected && <span className="cabin__3d-label">Crew locations · live 3D · tap a crew member</span>}
-      {selected && <HealthCard key={`${selected}-${viewer}`} id={selected} mode="cabin" viewer={viewer} onClose={() => setSelected(null)} />}
+      {selected && <HealthCard key={selected} id={selected} mode="cabin" viewer={viewer} onClose={() => setSelected(null)} onOpenTablet={onOpenTablet} />}
     </div>
   );
 }

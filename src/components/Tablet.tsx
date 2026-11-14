@@ -1,7 +1,7 @@
 // A crew member's personal tablet. Everyone sees their own detailed data. The commander's tablet adds each crew
 // member's duty status (no health values); the medical officer's tablet adds the crew medical view behind the demo PIN.
 
-import { memo, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, OSDR_GLUCOSE, type AstronautId } from '../domain/crew';
 import { DUTY_HINTS, DUTY_LABELS, dutyStatus, seesCrewStatus, TABLET_VIEW_LABELS, tabletViews, type DutyStatus, type TabletView } from '../domain/roles';
 import { isEva, locationLabel } from '../domain/locations';
@@ -9,6 +9,7 @@ import type { RoomState } from '../domain/room';
 import { crewSummary, missionClock, snapshot } from '../domain/sim';
 import { LEVEL_NAMES, routingFor, VITALS } from '../domain/vitals';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
+import { useTabletRequest } from '../lib/tabletRequest';
 import { useNow, useRoom } from '../lib/useRoom';
 import { formatAgo, levelClass } from './bits';
 import { Avatar } from './Avatar';
@@ -141,12 +142,12 @@ function CrewStatus({ state, now }: { state: RoomState | undefined; now: number 
   );
 }
 
-function CrewMedical({ state, now }: { state: RoomState | undefined; now: number }) {
+function CrewMedical({ state, now, focus }: { state: RoomState | undefined; now: number; focus?: { id: AstronautId; at: number } | null }) {
   const [unlocked, setUnlocked] = useState(readUnlocked);
   if (!unlocked) return <PinGate onUnlock={() => setUnlocked(true)} />;
   return (
     <div className="tablet__body">
-      <MedicalOverview state={state} now={now} />
+      <MedicalOverview state={state} now={now} focus={focus} />
     </div>
   );
 }
@@ -156,6 +157,19 @@ export const Tablet = memo(function Tablet({ astronautId, initialView }: { astro
   const now = useNow(1000);
   const views = tabletViews(astronautId);
   const [picked, setPicked] = useState<TabletView>(initialView ?? 'self');
+  // "Open on my tablet" from the cabin screen: own health, or the crew member in crew medical for the medical officer.
+  const request = useTabletRequest();
+  const mountedAt = useRef(Date.now());
+  const [focus, setFocus] = useState<{ id: AstronautId; at: number } | null>(null);
+  useEffect(() => {
+    if (!request || request.at < mountedAt.current) return;
+    if (CREW_BY_ID[astronautId].cmo && request.target !== astronautId) {
+      setPicked('crewMedical');
+      setFocus({ id: request.target, at: request.at });
+    } else {
+      setPicked('self');
+    }
+  }, [request, astronautId]);
   const view = views.includes(picked) ? picked : 'self';
   const a = CREW_BY_ID[astronautId];
   const st = state ?? undefined;
@@ -182,7 +196,7 @@ export const Tablet = memo(function Tablet({ astronautId, initialView }: { astro
         )}
         {view === 'self' && seesCrewStatus(astronautId) && <CrewStatus state={st} now={now} />}
         {view === 'self' && <MyHealth id={astronautId} state={st} now={now} titled={seesCrewStatus(astronautId)} />}
-        {view === 'crewMedical' && <CrewMedical state={st} now={now} />}
+        {view === 'crewMedical' && <CrewMedical state={st} now={now} focus={focus} />}
         <footer className="tablet__foot">Simulated data</footer>
       </div>
     </div>

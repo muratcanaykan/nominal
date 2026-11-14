@@ -27,7 +27,7 @@ class SimBoundary extends Component<{ children: ReactNode }, { failed: boolean }
   }
 }
 
-function CabinOverlay({ viewer, onClose }: { viewer: AstronautId; onClose: () => void }) {
+function CabinOverlay({ viewer, onClose, onOpenTablet }: { viewer: AstronautId; onClose: () => void; onOpenTablet?: (id: AstronautId) => void }) {
   const now = useNow(250);
   return (
     <div className="sim3d__overlay" role="dialog" aria-label="Cabin screen">
@@ -35,7 +35,18 @@ function CabinOverlay({ viewer, onClose }: { viewer: AstronautId; onClose: () =>
         <button className="drawer__close sim3d__overlay-close" onClick={onClose} aria-label="Close the cabin screen">
           ✕
         </button>
-        <CabinScreen now={now} viewer={viewer} foreground />
+        <CabinScreen
+          now={now}
+          viewer={viewer}
+          foreground
+          onOpenTablet={
+            onOpenTablet &&
+            ((id) => {
+              onClose();
+              onOpenTablet(id);
+            })
+          }
+        />
       </div>
     </div>
   );
@@ -49,7 +60,7 @@ function FullscreenIcon({ exit }: { exit: boolean }) {
   );
 }
 
-export function SimSection({ viewer }: { viewer: AstronautId }) {
+export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOpenTablet?: (id: AstronautId) => void }) {
   const box = useRef<HTMLDivElement>(null);
   const view = useRef<HTMLDivElement>(null);
   const zoom = useRef(1);
@@ -195,7 +206,7 @@ export function SimSection({ viewer }: { viewer: AstronautId }) {
           </button>
         </div>
         {target && !focusScreen && <HealthCard key={target} id={target} mode="full" onClose={() => setTarget(null)} />}
-        {screenOpen && <CabinOverlay viewer={viewer} onClose={closeScreen} />}
+        {screenOpen && <CabinOverlay viewer={viewer} onClose={closeScreen} onOpenTablet={onOpenTablet} />}
       </div>
       <SimPanel
         target={target}

@@ -1,15 +1,13 @@
 // Card that opens beside a 3D view when an astronaut is selected.
 // `full` (the demo simulation): every reading with a short trend, and the body map.
-// `cabin` (the shared cabin screen): who and where, the watch connection and crew alerts only. Health values stay
-// private there: only the crew member themselves (by choice) or the medical officer (with the demo PIN) can open them
-// on the shared screen, and they hide again when the card closes.
+// `cabin` (the shared cabin screen): who and where, the watch connection and crew alerts only. Health values never
+// show there; the crew member themselves or the medical officer can jump to their own tablet instead.
 
 import { CREW_BY_ID, type AstronautId } from '../domain/crew';
 import { isSuited, locationLabel } from '../domain/locations';
 import { responseSteps } from '../domain/response';
 import { crewSummary, snapshot } from '../domain/sim';
 import { LEVEL_NAMES, VITAL_IDS, VITALS, type VitalId } from '../domain/vitals';
-import { useState, type FormEvent } from 'react';
 import type { RoomState } from '../domain/room';
 import type { Snapshot } from '../domain/sim';
 import { useNow, useRoom } from '../lib/useRoom';
@@ -18,7 +16,6 @@ import { formatAgo, levelClass, ShortLabel } from './bits';
 import { BodyMap } from './BodyMap';
 import { icons } from './icons';
 import { readingNote, readingValue, showsTile, Sparkline } from './health';
-import { DEMO_PIN, markUnlocked, readUnlocked } from './MedicalView';
 
 const TRENDS: VitalId[] = ['heartRate', 'spo2', 'bloodPressure', 'bodyTemp', 'glucose'];
 
@@ -90,76 +87,24 @@ function FullCard({ id, onClose }: { id: AstronautId; onClose: () => void }) {
   );
 }
 
-/** Who may open health values on the shared screen: the crew member themselves, or the medical officer. */
-function revealRole(viewer: AstronautId | undefined, id: AstronautId): 'self' | 'cmo' | null {
+/** Who has the values on their own tablet: the crew member themselves, or the medical officer. */
+function tabletRole(viewer: AstronautId | undefined, id: AstronautId): 'self' | 'cmo' | null {
   if (!viewer) return null;
   if (viewer === id) return 'self';
   return CREW_BY_ID[viewer].cmo ? 'cmo' : null;
 }
 
-function Reveal({ id, viewer, onReveal }: { id: AstronautId; viewer: AstronautId | undefined; onReveal: () => void }) {
-  const role = revealRole(viewer, id);
-  const [askPin, setAskPin] = useState(false);
-  const [pin, setPin] = useState('');
-  const [wrong, setWrong] = useState(false);
-  const a = CREW_BY_ID[id];
-  if (!role) {
-    return (
-      <p className="hcard__private">
-        {icons.lock}
-        <span>Health values stay private. Only {a.name.split(' ')[0]} and the medical officer can open them here.</span>
-      </p>
-    );
-  }
-  if (askPin) {
-    const submit = (e: FormEvent) => {
-      e.preventDefault();
-      if (pin === DEMO_PIN) {
-        markUnlocked();
-        onReveal();
-      } else setWrong(true);
-    };
-    return (
-      <form className="hcard__pin" onSubmit={submit}>
-        <label htmlFor={`cabin-pin-${id}`}>Medical officer PIN · demo PIN {DEMO_PIN}</label>
-        <div>
-          <input
-            id={`cabin-pin-${id}`}
-            inputMode="numeric"
-            autoComplete="off"
-            maxLength={4}
-            value={pin}
-            autoFocus
-            onChange={(e) => {
-              setPin(e.target.value.replace(/\D/g, ''));
-              setWrong(false);
-            }}
-          />
-          <button type="submit">Open</button>
-        </div>
-        {wrong && <span className="hcard__pin-error">Wrong PIN. Use the demo PIN above.</span>}
-      </form>
-    );
-  }
-  return (
-    <button
-      className="hcard__reveal"
-      onClick={() => {
-        if (role === 'cmo' && !readUnlocked()) setAskPin(true);
-        else onReveal();
-      }}
-    >
-      {icons.lock}
-      <span>
-        <strong>{role === 'self' ? 'Show my health values' : 'Show health values'}</strong>
-        <small>{role === 'self' ? 'Your choice; others near the screen will see them' : 'As medical officer, with your PIN'}</small>
-      </span>
-    </button>
-  );
-}
-
-function CabinCard({ id, viewer, onClose }: { id: AstronautId; viewer?: AstronautId; onClose: () => void }) {
-  const [revealed, setRevealed] = useState(false);
+function CabinCard({
+  id,
+  viewer,
+  onClose,
+  onOpenTablet,
+}: {
+  id: AstronautId;
+  viewer?: AstronautId;
+  onClose: () => void;
+  onOpenTablet?: (id: AstronautId) => void;
+}) {
   const { state } = useRoom();
   const now = useNow(1000);
   const st = state ?? undefined;
@@ -167,6 +112,7 @@ function CabinCard({ id, viewer, onClose }: { id: AstronautId; viewer?: Astronau
   const s = summary.snapshots[id];
   const alert = summary.alerts.find((x) => x.astronautId === id);
   const claim = st?.claims?.[id];
+  const role = tabletRole(viewer, id);
   let status = 'No active alerts';
   let level = 'lvl-0';
   if (alert) {
@@ -197,25 +143,43 @@ function CabinCard({ id, viewer, onClose }: { id: AstronautId; viewer?: Astronau
           </>
         )}
       </dl>
-      {revealed && viewer ? (
-        <>
-          <div className="hcard__shown">
-            <span>
-              Shown on the shared screen by {CREW_BY_ID[viewer].name}
-              {viewer === id ? '' : ' (medical officer)'}
-            </span>
-            <button onClick={() => setRevealed(false)}>Hide</button>
-          </div>
-          <Readings id={id} s={snapshot(st, id, now)} state={st} now={now} />
-        </>
-      ) : (
-        <Reveal id={id} viewer={viewer} onReveal={() => setRevealed(true)} />
+      <p className="hcard__private">
+        {icons.lock}
+        <span>Health values never show on the shared cabin screen. They stay on the crew member's own devices and with the medical officer.</span>
+      </p>
+      {role && onOpenTablet && (
+        <button className="hcard__reveal" onClick={() => onOpenTablet(id)}>
+          {icons.tablet}
+          <span>
+            <strong>Open on my tablet</strong>
+            <small>{role === 'self' ? 'See your own values privately' : `See ${CREW_BY_ID[id].name.split(' ')[0]} in crew medical`}</small>
+          </span>
+        </button>
       )}
     </aside>
   );
 }
 
-/** `viewer` (cabin only): the crew member using the shared screen, who may be allowed to open health values. */
-export function HealthCard({ id, mode, viewer, onClose }: { id: AstronautId; mode: 'full' | 'cabin'; viewer?: AstronautId; onClose: () => void }) {
-  return mode === 'full' ? <FullCard id={id} onClose={onClose} /> : <CabinCard id={id} viewer={viewer} onClose={onClose} />;
+/**
+ * `viewer` and `onOpenTablet` (cabin only): the crew member using the shared screen can jump to their own tablet, where
+ * they see their own values (or, as medical officer, the crew medical view).
+ */
+export function HealthCard({
+  id,
+  mode,
+  viewer,
+  onClose,
+  onOpenTablet,
+}: {
+  id: AstronautId;
+  mode: 'full' | 'cabin';
+  viewer?: AstronautId;
+  onClose: () => void;
+  onOpenTablet?: (id: AstronautId) => void;
+}) {
+  return mode === 'full' ? (
+    <FullCard id={id} onClose={onClose} />
+  ) : (
+    <CabinCard id={id} viewer={viewer} onClose={onClose} onOpenTablet={onOpenTablet} />
+  );
 }

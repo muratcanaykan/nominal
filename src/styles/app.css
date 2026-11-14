@@ -2909,3 +2909,23 @@ html {
   border-radius: 99px;
   cursor: pointer;
 }
+
+.cmo-card.is-focus {
+  border-color: var(--accent);
+  animation: cmo-focus 1.2s ease-out 2;
+}
+
+@keyframes cmo-focus {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 60%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 14px transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cmo-card.is-focus {
+    animation: none;
+  }
+}

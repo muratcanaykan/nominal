@@ -1,7 +1,7 @@
 // Crew medical view on the medical officer's tablet: notifications (level 2+), space weather, and every crew member's
 // detailed values, trends and timeline. The demo PIN is shown on screen on purpose: judges cannot log in to anything.
 
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, OSDR_GLUCOSE, PROFILES, type AstronautId } from '../domain/crew';
 import { locationLabel } from '../domain/locations';
 import type { RoomState } from '../domain/room';
@@ -70,11 +70,11 @@ export function PinGate({ onUnlock }: { onUnlock: () => void }) {
   );
 }
 
-function CrewCard({ s, state, now }: { s: Snapshot; state: RoomState | undefined; now: number }) {
+function CrewCard({ s, state, now, focused }: { s: Snapshot; state: RoomState | undefined; now: number; focused?: boolean }) {
   const a = CREW_BY_ID[s.astronautId];
   const subject = OSDR_GLUCOSE.subjects[a.osdrSubject];
   return (
-    <article className={`cmo-card ${levelClass(s.status)}`}>
+    <article id={`cmo-card-${a.id}`} className={`cmo-card ${levelClass(s.status)}${focused ? ' is-focus' : ''}`}>
       <header className="cmo-card__head">
         <Avatar id={a.id} size={34} />
         <div className="cmo-card__who">
@@ -150,8 +150,21 @@ export function SpaceWeatherPanel({ state, now }: { state: RoomState | undefined
   );
 }
 
-/** Everything the medical officer sees about the crew, after the PIN. */
-export function MedicalOverview({ state, now }: { state: RoomState | undefined; now: number }) {
+/** Everything the medical officer sees about the crew, after the PIN. `focus` scrolls to and highlights one card. */
+export function MedicalOverview({
+  state,
+  now,
+  focus,
+}: {
+  state: RoomState | undefined;
+  now: number;
+  focus?: { id: AstronautId; at: number } | null;
+}) {
+  useEffect(() => {
+    if (!focus) return;
+    const t = window.setTimeout(() => document.getElementById(`cmo-card-${focus.id}`)?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 450);
+    return () => window.clearTimeout(t);
+  }, [focus]);
   const summary = crewSummary(state, now);
   const profile = PROFILES[state?.profile ?? 'lunar'];
   const notifications = CREW.flatMap((a) => {
@@ -206,7 +219,7 @@ export function MedicalOverview({ state, now }: { state: RoomState | undefined; 
 
       <section className="cmo-grid" aria-label="Crew details">
         {CREW.map((a) => (
-          <CrewCard key={a.id} s={summary.snapshots[a.id]} state={state} now={now} />
+          <CrewCard key={a.id} s={summary.snapshots[a.id]} state={state} now={now} focused={focus?.id === a.id} />
         ))}
       </section>
 
