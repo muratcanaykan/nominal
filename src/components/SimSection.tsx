@@ -176,6 +176,7 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
                 setTarget(id);
                 setRegion(null);
               }}
+              focusRegion={region}
               onRegion={(id, r) => {
                 setTarget(id);
                 setRegion(r);

@@ -1,7 +1,7 @@
 // 3D mission simulation: the vehicle, the crew inside or on a spacewalk, and suit regions glowing in alert colours.
 // Astronaut model: NASA 3D Resources ("Astronaut"), rendered with our own materials. All data is simulated.
 
-import { Edges, Html, Line, OrbitControls, Stars, useGLTF } from '@react-three/drei';
+import { Billboard, Edges, Html, Line, OrbitControls, Stars, useGLTF } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { Bloom, EffectComposer, Vignette } from '@react-three/postprocessing';
 import { useEffect, useMemo, useRef } from 'react';
@@ -168,9 +168,9 @@ function useAstronautGeometry() {
     const suit = meshes[0].geometry;
     suit.computeBoundingBox();
     const bounds = suit.boundingBox!.clone();
-    const parts = regionParts(suit.clone(), HEIGHT, bounds);
+    const { parts, centres } = regionParts(suit.clone(), HEIGHT, bounds);
     const visor = meshes[1] ? orient(meshes[1].geometry.clone(), HEIGHT, bounds) : null;
-    return { parts, visor };
+    return { parts, centres, visor };
   }, [gltf]);
 }
 
@@ -178,9 +178,30 @@ function pulse(t: number, period: number) {
   return 0.5 + 0.5 * Math.sin((t * 2 * Math.PI) / period);
 }
 
+/** Pulsing ring that always faces the camera and draws on top, so the chosen body region is easy to spot. */
+function RegionMarker({ position, ref }: { position: THREE.Vector3; ref: React.Ref<THREE.Group> }) {
+  return (
+    <group position={position}>
+      <Billboard>
+        <group ref={ref}>
+          <mesh renderOrder={10} raycast={() => null}>
+            <ringGeometry args={[0.075, 0.1, 40]} />
+            <meshBasicMaterial color={ACCENT} toneMapped={false} transparent opacity={0.95} depthTest={false} />
+          </mesh>
+          <mesh renderOrder={10} raycast={() => null}>
+            <circleGeometry args={[0.022, 20]} />
+            <meshBasicMaterial color={ACCENT} toneMapped={false} depthTest={false} />
+          </mesh>
+        </group>
+      </Billboard>
+    </group>
+  );
+}
+
 function Astronaut({
   v,
   selected,
+  focusRegion,
   onSelect,
   onRegion,
   positions,
@@ -192,11 +213,14 @@ function Astronaut({
   onRegion?: (id: AstronautId, region: BodyRegion) => void;
   v: CrewVisual;
   selected: boolean;
+  /** Body region chosen on this astronaut: it glows in the accent colour with a marker on it. */
+  focusRegion?: BodyRegion | null;
   onSelect: (id: AstronautId) => void;
   positions: Map<AstronautId, THREE.Vector3>;
   reduce: boolean;
 }) {
-  const { parts, visor } = useAstronautGeometry();
+  const { parts, centres, visor } = useAstronautGeometry();
+  const marker = useRef<THREE.Group>(null);
   const group = useRef<THREE.Group>(null);
   const armL = useRef<THREE.Group>(null);
   const armR = useRef<THREE.Group>(null);
@@ -296,6 +320,18 @@ function Astronaut({
       m.emissiveIntensity = level === 1 ? 0.35 + 0.25 * p : level === 2 ? 0.6 + 0.9 * p : 0.9 + 1.6 * p;
       m.color.lerp(new THREE.Color(LEVEL_COLOR[level]), 0.35);
     });
+    // The chosen region glows in the accent colour (on top of any alert colour) and its marker pulses.
+    if (focusRegion && !offline) {
+      const m = materials[REGIONS.indexOf(focusRegion)];
+      const p = reduce ? 1 : pulse(t, 1.1);
+      m.emissive.set(ACCENT);
+      m.emissiveIntensity = 0.7 + 0.9 * p;
+      m.color.set('#e9eef4').lerp(new THREE.Color(ACCENT), 0.45);
+    }
+    if (marker.current) {
+      const k = reduce ? 1 : 1 + 0.25 * Math.sin(t * 5);
+      marker.current.scale.setScalar(k);
+    }
     const head = v.regions.head ?? 0;
     visorMaterial.emissive.set(head > 0 ? LEVEL_COLOR[head] : '#000000');
     visorMaterial.emissiveIntensity = head > 0 ? 0.5 + (reduce ? 0.5 : pulse(t, head === 3 ? 0.8 : 1.4)) : 0;
@@ -330,17 +366,22 @@ function Astronaut({
       onPointerOut={() => (document.body.style.cursor = '')}
     >
       <mesh geometry={parts.core.geometry} material={materials} />
+      {focusRegion && centres[focusRegion].part === 'core' && <RegionMarker ref={marker} position={centres[focusRegion].position} />}
       <group ref={armL} position={parts.armL.pivot}>
         <mesh geometry={parts.armL.geometry} material={materials} />
+        {focusRegion && centres[focusRegion].part === 'armL' && <RegionMarker ref={marker} position={centres[focusRegion].position} />}
       </group>
       <group ref={armR} position={parts.armR.pivot}>
         <mesh geometry={parts.armR.geometry} material={materials} />
+        {focusRegion && centres[focusRegion].part === 'armR' && <RegionMarker ref={marker} position={centres[focusRegion].position} />}
       </group>
       <group ref={legL} position={parts.legL.pivot}>
         <mesh geometry={parts.legL.geometry} material={materials} />
+        {focusRegion && centres[focusRegion].part === 'legL' && <RegionMarker ref={marker} position={centres[focusRegion].position} />}
       </group>
       <group ref={legR} position={parts.legR.pivot}>
         <mesh geometry={parts.legR.geometry} material={materials} />
+        {focusRegion && centres[focusRegion].part === 'legR' && <RegionMarker ref={marker} position={centres[focusRegion].position} />}
       </group>
       {visor && <mesh geometry={visor} material={visorMaterial} />}
       <mesh ref={halo} visible={false} raycast={() => null}>
@@ -917,12 +958,15 @@ interface SceneProps {
   onScreenClick?: () => void;
   /** Click on a body part of the selected astronaut. */
   onRegion?: (id: AstronautId, region: BodyRegion) => void;
+  /** Body region of the selected astronaut shown in detail; it is highlighted in 3D. */
+  focusRegion?: BodyRegion | null;
 }
 
 function Scene({
   selected,
   onSelect,
   onRegion,
+  focusRegion = null,
   focusScreen,
   onScreenClick,
   zoom,
@@ -955,6 +999,7 @@ function Scene({
           key={v.id}
           v={v}
           selected={selected === v.id}
+          focusRegion={selected === v.id ? focusRegion : null}
           onSelect={onSelect}
           onRegion={mode === 'sim' ? onRegion : undefined}
           positions={positions}

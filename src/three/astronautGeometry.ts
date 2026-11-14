@@ -87,7 +87,18 @@ export function orient(g: THREE.BufferGeometry, height: number, bounds: THREE.Bo
   return transformFor(height, bounds).geometry(g);
 }
 
-export function regionParts(src: THREE.BufferGeometry, height: number, bounds: THREE.Box3): Record<PartId, Part> {
+export interface RegionCentre {
+  part: PartId;
+  /** Centre of the region in its part's local space (so a marker follows a moving arm or leg). */
+  position: THREE.Vector3;
+}
+
+export interface AstronautParts {
+  parts: Record<PartId, Part>;
+  centres: Record<BodyRegion, RegionCentre>;
+}
+
+export function regionParts(src: THREE.BufferGeometry, height: number, bounds: THREE.Box3): AstronautParts {
   const g = src.index ? src.toNonIndexed() : src;
   const pos = g.getAttribute('position');
   const tris = pos.count / 3;
@@ -135,5 +146,23 @@ export function regionParts(src: THREE.BufferGeometry, height: number, bounds: T
     out.computeBoundingSphere();
     parts[part] = { geometry: out, pivot };
   }
-  return parts;
+
+  // Region centres: the mean of each region's vertices, moved into its part's local space.
+  const centres = {} as Record<BodyRegion, RegionCentre>;
+  REGIONS.forEach((region, i) => {
+    const sum = [0, 0, 0];
+    let n = 0;
+    for (const t of buckets[i]) {
+      for (let v = 0; v < 3; v++) {
+        sum[0] += pos.getX(3 * t + v);
+        sum[1] += pos.getY(3 * t + v);
+        sum[2] += pos.getZ(3 * t + v);
+        n++;
+      }
+    }
+    const part = PART_OF[region];
+    const world = tf.point([sum[0] / Math.max(1, n), sum[1] / Math.max(1, n), sum[2] / Math.max(1, n)]);
+    centres[region] = { part, position: world.sub(parts[part].pivot) };
+  });
+  return { parts, centres };
 }
