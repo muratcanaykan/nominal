@@ -8,7 +8,7 @@
 
 ## Demo
 
-- Live app: _coming soon_
+- Live app: https://nasa.rteuceng.com
 - Demo video / slides: _coming soon_
 
 ## The challenge
