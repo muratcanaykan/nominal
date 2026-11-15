@@ -2,9 +2,9 @@
 
 **Stay nominal.** A crew health monitoring prototype for long-duration space missions.
 
-> Built during the NASA Space Apps Challenge 2026 for the challenge
+> Built by team **SPARK HUB** during the NASA Space Apps Challenge 2026 for the challenge
 > *Create Health Monitoring Software for Astronauts on Space Missions*.
-> Work in progress. All physiological data in this prototype is **simulated**.
+> All physiological data in this prototype is **simulated**.
 
 ## Demo
 
@@ -275,6 +275,8 @@ npm run dev
 ```
 
 ## Team
+
+**SPARK HUB**
 
 - Muratcan Aykan
 - Ece İrem Şaş
