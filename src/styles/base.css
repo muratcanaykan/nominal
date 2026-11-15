@@ -1111,7 +1111,8 @@ button:focus-visible {
   position: absolute;
   left: 12px;
   top: 10px;
-  font: 700 10px var(--font-label);
+  max-width: calc(100% - 120px);
+  font: 700 11px/1.4 var(--font-label);
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: rgb(125 211 252 / 0.85);

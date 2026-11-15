@@ -52,7 +52,7 @@ export function CabinView3D({
           />
         </Suspense>
       </Fallback>
-      {!selected && <span className="cabin__3d-label">Crew locations · live 3D · tap a crew member</span>}
+      {!selected && <span className="cabin__3d-label">Crew locations · live 3D · only critical alerts shown · tap a crew member</span>}
       {selected && <HealthCard key={selected} id={selected} mode="cabin" viewer={viewer} onClose={() => setSelected(null)} onOpenTablet={onOpenTablet} />}
     </div>
   );
