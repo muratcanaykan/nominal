@@ -211,7 +211,7 @@ export function SimSection({ viewer, onOpenTablet }: { viewer: AstronautId; onOp
         </SimBoundary>
         <p className="sim3d__hint">
           Drag to rotate · Scroll to zoom · Click an astronaut, then a body part · Click the cabin screen ·
-          Spacesuit model: NASA 3D Resources · Simulated data
+          Spacesuit model: NASA 3D Resources · Coverall crew models: made with AI (Claude) · Simulated data
         </p>
         <div className="sim3d__buttons">
           {full && (

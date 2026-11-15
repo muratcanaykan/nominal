@@ -91,8 +91,9 @@ that helps astronauts assess their own health and guides them on what to do.
 - **Readable at a glance** — alert levels have a shape as well as a colour (● nominal, ▲ caution, ◆ warning,
   ■ critical, ○ no data), so they do not depend on colour vision. While an alert needs the crew, the demo page and the
   cabin screen glow red at the edges and play a short alert tone (it can be switched off).
-- **Escalation** — three alert levels decide who is told: the astronaut alone, then the crew medical officer, then the
-  whole crew and flight surgeons on Earth (with realistic communication delay).
+- **Escalation** — four alert levels (nominal, caution, warning, critical) decide who is told: nominal and caution
+  stay on the astronaut's own watch, a warning adds the crew medical officer, and a critical alert adds the whole crew
+  and flight surgeons on Earth (with realistic communication delay).
 - **Guided tour** — one health event played live in about a minute: a spacewalker's blood oxygen drifts down, and
   each step highlights the screen that changes and who is told, from the astronaut's own watch to the medical officer,
   the whole crew and flight surgeons on Earth.
@@ -264,7 +265,10 @@ spacewalk length and the suggestion scoring are prototype assumptions:
 - The source code was written with Claude Code (Anthropic). This includes the simulated data generator, the
   threshold tables and the in-app guidance texts, which live in the source code.
 - Commits written with AI assistance carry a `Co-Authored-By: Claude` trailer.
-- No AI-generated images, video or audio are used.
+- The coverall crew 3D models ([`public/models/crew-female.glb`](public/models/crew-female.glb),
+  [`public/models/crew-male.glb`](public/models/crew-male.glb)) were made by our team with Claude and built with
+  trimesh. The 3D view says so in the note under the scene.
+- No other AI-generated images, video or audio are used.
 
 ## Run locally
 
