@@ -93,7 +93,10 @@ export function composeMessage(
   } else {
     text = top ? `${name}, ${where}: ${reading}. Requesting guidance on next steps.` : `${name}, ${where}: readings in range, requesting a routine review.`;
   }
-  return { from, about, kind, text, at: now, delayMs: PROFILES[state?.profile ?? 'lunar'].earthDelayMs, vital: top?.id };
+  const message: EarthMessage = { from, about, kind, text, at: now, delayMs: PROFILES[state?.profile ?? 'lunar'].earthDelayMs };
+  // Firebase rejects undefined values: only add the reading when there is one.
+  if (top) message.vital = top.id;
+  return message;
 }
 
 const GUIDANCE: Partial<Record<VitalId, string>> = {

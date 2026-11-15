@@ -3,7 +3,7 @@
 import type { PainSite } from '../domain/body';
 import type { AstronautId, ProfileId } from '../domain/crew';
 import type { LocationId } from '../domain/locations';
-import { ackKey, applyPatch, newRoomState, type Patch, type RoomState } from '../domain/room';
+import { ackKey, applyPatch, findUndefined, newRoomState, type Patch, type RoomState } from '../domain/room';
 import { composeMessage, type MessageKind } from '../domain/earth';
 import { scenarioPatch, type ScenarioId } from '../domain/scenarios';
 import type { Level, VitalId } from '../domain/vitals';
@@ -229,6 +229,9 @@ export class MemoryBackend implements Backend {
   }
 
   async update(patch: Patch) {
+    // Same rule as Firebase, so tests catch writes it would reject.
+    const bad = findUndefined(patch);
+    if (bad) throw new Error(`update failed: values argument contains undefined in property '${bad}'`);
     this.state = applyPatch(this.state, patch);
     this.emit();
   }

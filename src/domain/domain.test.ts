@@ -407,6 +407,22 @@ describe('messages to Earth', () => {
     expect(replyText(mars)).toContain('Okafor');
   });
 
+  it('sends updates after the alert is resolved, with nothing Firebase would reject', async () => {
+    let t = 10_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => t));
+    await store.runScenario('02', 'critical');
+    t = 30_000;
+    await store.resolve('02');
+    t = 40_000;
+    for (const kind of ['status', 'guidance', 'clear'] as const) {
+      await store.sendEarth('03', '02', kind);
+      t += 1000;
+    }
+    expect(store.getSnapshot().error).toBeUndefined();
+    expect(earthMessages(store.current)).toHaveLength(3);
+    expect(earthMessages(store.current)[0].text).toContain('all readings in range');
+  });
+
   it('sends a status update when the Earth step of the checklist is ticked', async () => {
     let t = 10_000;
     const store = new RoomStore(new MemoryBackend(newRoomState(0), () => t));

@@ -51,6 +51,29 @@ export function newRoomState(now: number, profile: ProfileId = 'lunar'): RoomSta
 /** A multi-path patch, Firebase `update()` style: keys are slash paths, `null` deletes. */
 export type Patch = Record<string, unknown>;
 
+/** Path of the first `undefined` value (Firebase rejects them), or null. */
+export function findUndefined(value: unknown, path = ''): string | null {
+  if (value === undefined) return path || '(root)';
+  if (value && typeof value === 'object') {
+    for (const [k, v] of Object.entries(value)) {
+      const found = findUndefined(v, path ? `${path}.${k}` : k);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+/** A copy without `undefined` fields, so an optional field left empty never blocks a write. */
+export function withoutUndefined<T>(value: T): T {
+  if (Array.isArray(value)) return value.map(withoutUndefined) as T;
+  if (value && typeof value === 'object') {
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(value)) if (v !== undefined) out[k] = withoutUndefined(v);
+    return out as T;
+  }
+  return value;
+}
+
 export function applyPatch<T extends object>(state: T, patch: Patch): T {
   const next = structuredClone(state) as Record<string, unknown>;
   for (const [path, value] of Object.entries(patch)) {

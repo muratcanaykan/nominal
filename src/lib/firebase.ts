@@ -3,7 +3,7 @@
 import { initializeApp, type FirebaseApp } from 'firebase/app';
 import { getAuth, signInAnonymously } from 'firebase/auth';
 import { getDatabase, onValue, ref, set, update, type Database } from 'firebase/database';
-import type { Patch, RoomState } from '../domain/room';
+import { withoutUndefined, type Patch, type RoomState } from '../domain/room';
 import { isNetworkError, syncErrorMessage, withRetry } from './retry';
 import type { Backend, RoomStatus } from './store';
 
@@ -80,13 +80,13 @@ export class FirebaseBackend implements Backend {
   async update(patch: Patch) {
     const { db, authReady } = init();
     await authReady;
-    await update(ref(db, this.path), patch);
+    await update(ref(db, this.path), withoutUndefined(patch));
   }
 
   async reset(state: RoomState) {
     const { db, authReady } = init();
     await authReady;
-    await set(ref(db, this.path), state);
+    await set(ref(db, this.path), withoutUndefined(state));
   }
 
   subscribe(listener: (state: RoomState | null, status: RoomStatus, error?: string) => void) {
