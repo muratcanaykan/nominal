@@ -2,7 +2,7 @@
 // all clear about a crew member, then watch it cross the signal delay and the reply come back.
 
 import { useState } from 'react';
-import { CREW, CREW_BY_ID, PROFILES, type AstronautId } from '../domain/crew';
+import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, PROFILES, type AstronautId } from '../domain/crew';
 import {
   ANSWER_MS,
   arrivesAt,
@@ -16,7 +16,7 @@ import {
   type MessageKind,
 } from '../domain/earth';
 import type { RoomState } from '../domain/room';
-import { crewSummary } from '../domain/sim';
+import { crewSummary, missionClock } from '../domain/sim';
 import { useStore } from '../lib/useRoom';
 import { Avatar } from './Avatar';
 import { formatDelay } from './bits';
@@ -35,13 +35,27 @@ export function stageText(m: EarthMessage, now: number): string {
   }
 }
 
-function Message({ m, now }: { m: EarthMessage & { id: string }; now: number }) {
+type Listed = EarthMessage & { id: string };
+
+function Message({ m, now, state }: { m: Listed; now: number; state: RoomState | undefined }) {
+  const store = useStore();
   const stage = stageOf(m, now);
   const total = replyAt(m) - m.at;
   const share = Math.min(1, (now - m.at) / total);
+  const clock = (t: number) => missionClock(state, t, MISSION_DAY_OFFSET_MS);
   return (
-    <li className={`earth-msg is-${stage}`}>
+    <li className={`earth-msg is-${stage}${m.archived ? ' is-archived' : ''}`}>
       <div className="earth-msg__out">
+        <p className="earth-msg__when">
+          <time>Sent {clock(m.at)}</time>
+          {stage === 'replied' && <time>Reply {clock(replyAt(m))}</time>}
+          <button
+            className="earth-msg__archive"
+            onClick={() => store.archiveEarth([m.id], !m.archived)}
+          >
+            {m.archived ? 'Restore' : 'Archive'}
+          </button>
+        </p>
         <header>
           <Avatar id={m.from} size={22} />
           <strong>{MESSAGE_LABELS[m.kind]}</strong>
@@ -74,7 +88,11 @@ export function EarthPanel({ state, now, from }: { state: RoomState | undefined;
   const [about, setAbout] = useState<AstronautId>(alerts[0]?.astronautId ?? CREW[1].id);
   const profile = PROFILES[state?.profile ?? 'lunar'];
   const round = 2 * profile.earthDelayMs + ANSWER_MS;
-  const messages = earthMessages(state).slice(-4).reverse();
+  const all = earthMessages(state).reverse();
+  const active = all.filter((m) => !m.archived);
+  const archived = all.filter((m) => m.archived).sort((a, b) => b.at - a.at);
+  const replied = active.filter((m) => stageOf(m, now) === 'replied');
+  const [archiveOpen, setArchiveOpen] = useState(false);
   return (
     <section className="panel earth" aria-labelledby="earth-title">
       <div className="medical__meta">
@@ -110,14 +128,35 @@ export function EarthPanel({ state, now, from }: { state: RoomState | undefined;
           ))}
         </div>
       </div>
-      {messages.length > 0 ? (
+      {replied.length > 1 && (
+        <button className="btn-ghost earth__archive-all" onClick={() => store.archiveEarth(replied.map((m) => m.id), true)}>
+          Archive {replied.length} answered messages
+        </button>
+      )}
+      {active.length > 0 ? (
         <ol className="earth__list">
-          {messages.map((m) => (
-            <Message key={m.id} m={m} now={now} />
+          {active.map((m) => (
+            <Message key={m.id} m={m} now={now} state={state} />
           ))}
         </ol>
       ) : (
-        <p className="cmo-empty">No messages yet. Ticking "Send flight surgeons an update" on the cabin screen sends one too.</p>
+        <p className="cmo-empty">
+          {archived.length
+            ? 'No open messages. Older ones are in the archive below.'
+            : 'No messages yet. Ticking "Send flight surgeons an update" on the cabin screen sends one too.'}
+        </p>
+      )}
+      {archived.length > 0 && (
+        <details className="earth__archive" open={archiveOpen} onToggle={(e) => setArchiveOpen(e.currentTarget.open)}>
+          <summary>
+            Archive · {archived.length} {archived.length === 1 ? 'message' : 'messages'}
+          </summary>
+          <ol className="earth__list">
+            {archived.map((m) => (
+              <Message key={m.id} m={m} now={now} state={state} />
+            ))}
+          </ol>
+        </details>
       )}
     </section>
   );

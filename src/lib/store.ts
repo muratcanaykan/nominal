@@ -155,6 +155,12 @@ export class RoomStore {
     return this.update({ [`reactions/${id}`]: scoreReaction(id, times, falseStarts, this.now()) });
   }
 
+  /** Moves Earth messages to the archive, or back. */
+  archiveEarth(ids: string[], archived: boolean) {
+    const now = this.now();
+    return this.update(Object.fromEntries(ids.map((id) => [`messages/${id}/archived`, archived ? now : null])));
+  }
+
   /** Sends a message about a crew member to the flight surgeons on Earth. */
   sendEarth(from: AstronautId, about: AstronautId, kind: MessageKind) {
     const now = this.now();

@@ -425,6 +425,20 @@ describe('messages to Earth', () => {
     expect(earthMessages(store.current)[0].text).toContain('all readings in range');
   });
 
+  it('archives and restores messages', async () => {
+    let t = 1000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => t));
+    await store.sendEarth('03', '01', 'status');
+    t = 2000;
+    await store.sendEarth('03', '02', 'clear');
+    const ids = earthMessages(store.current).map((m) => m.id);
+    await store.archiveEarth(ids, true);
+    expect(earthMessages(store.current).every((m) => m.archived)).toBe(true);
+    await store.archiveEarth([ids[0]], false);
+    expect(earthMessages(store.current).find((m) => m.id === ids[0])?.archived).toBeUndefined();
+    expect(store.getSnapshot().error).toBeUndefined();
+  });
+
   it('sends a status update when the Earth step of the checklist is ticked', async () => {
     let t = 10_000;
     const store = new RoomStore(new MemoryBackend(newRoomState(0), () => t));

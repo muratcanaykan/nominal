@@ -28,6 +28,8 @@ export interface EarthMessage {
   delayMs: number;
   /** The reading the message is about, for the reply. */
   vital?: VitalId;
+  /** When the medical officer moved it to the archive. */
+  archived?: number;
 }
 
 /** Time the flight surgeon on duty takes to read and answer (shortened for the demo). */
