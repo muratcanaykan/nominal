@@ -130,7 +130,9 @@ export class RoomStore {
     return this.update({ [`help/${id}`]: null, [`claims/${id}`]: null, [`checklists/${id}`]: null });
   }
 
+  /** Someone answers a crew alert. Nobody answers their own: the person in trouble cannot be the responder. */
   claim(id: AstronautId, by: AstronautId) {
+    if (by === id) return Promise.resolve();
     return this.update({ [`claims/${id}`]: { by, at: this.now() } });
   }
 
@@ -139,6 +141,7 @@ export class RoomStore {
    * "update Earth" step sends a status update to the flight surgeons.
    */
   checkStep(id: AstronautId, step: string, by: AstronautId, done: boolean) {
+    if (by === id) return Promise.resolve();
     const now = this.now();
     const patch: Patch = { [`checklists/${id}/${step}`]: done ? { by, at: now } : null };
     if (done && !this.state?.claims?.[id]) patch[`claims/${id}`] = { by, at: now };
@@ -167,8 +170,9 @@ export class RoomStore {
     return this.update({ [`messages/${now}-${from}`]: composeMessage(this.state ?? undefined, from, about, kind, now) });
   }
 
-  /** Closes a crew alert: clears the help request, the claim and the astronaut's scenario. */
-  resolve(id: AstronautId) {
+  /** Closes a crew alert: clears the help request, the claim and the astronaut's scenario. `by` cannot be `id`. */
+  resolve(id: AstronautId, by?: AstronautId) {
+    if (by === id) return Promise.resolve();
     return this.update({
       ...scenarioPatch(id, 'nominal', this.now()),
       [`help/${id}`]: null,

@@ -20,6 +20,8 @@ function Checklist({ alert, now, viewer }: { alert: CrewAlert; now: number; view
   const steps = responseChecklist(alert, state);
   const ticks = state?.checklists?.[alert.astronautId] ?? {};
   const done = steps.filter((s) => ticks[s.id]).length;
+  // The person in trouble sees the steps but does not tick them: crewmates do.
+  const self = viewer === alert.astronautId;
   return (
     <div className="check">
       <div className="check__head">
@@ -39,6 +41,7 @@ function Checklist({ alert, now, viewer }: { alert: CrewAlert; now: number; view
               <button
                 className={`check__item${t ? ' is-done' : ''}`}
                 aria-pressed={!!t}
+                disabled={self}
                 onClick={() => store.checkStep(alert.astronautId, step.id, viewer, !t)}
               >
                 <span className="check__box" aria-hidden="true">
@@ -61,6 +64,7 @@ function Checklist({ alert, now, viewer }: { alert: CrewAlert; now: number; view
           );
         })}
       </ol>
+      {self && done < steps.length && <p className="check__note">Your crewmates tick these steps.</p>}
       {done === steps.length && <p className="check__done">All steps done. Resolve the alert once {CREW_BY_ID[alert.astronautId].name} is stable.</p>}
     </div>
   );
@@ -110,12 +114,25 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
       </dl>
       <Checklist alert={alert} now={now} viewer={viewer} />
       <footer className="event__foot">
-        {alert.claimedBy ? (
+        {viewer === alert.astronautId ? (
+          <>
+            <p className="event__self">
+              {alert.kind === 'help'
+                ? 'You called for help. Your crew has been told; stay where you are.'
+                : 'Your crew has been called. Stay where you are; help is coming.'}
+            </p>
+            {alert.claimedBy && (
+              <span className="event__claimed">
+                {CREW_BY_ID[alert.claimedBy].name} is responding · {formatAgo(now - (alert.claimedAt ?? now))}
+              </span>
+            )}
+          </>
+        ) : alert.claimedBy ? (
           <>
             <span className="event__claimed">
               {CREW_BY_ID[alert.claimedBy].name} is responding · {formatAgo(now - (alert.claimedAt ?? now))}
             </span>
-            <button className="btn-ghost" onClick={() => store.resolve(alert.astronautId)}>
+            <button className="btn-ghost" onClick={() => store.resolve(alert.astronautId, viewer)}>
               Resolve
             </button>
           </>

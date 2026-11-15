@@ -383,6 +383,20 @@ describe('response checklist', () => {
     for (const s of responseChecklist(alert, state)) expect(s.text).not.toMatch(/\d+ ?%|bpm|mmHg/);
   });
 
+  it('never lets the person in trouble answer, tick or close their own alert', async () => {
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => 10_000));
+    await store.runScenario('02', 'critical');
+    await store.claim('02', '02');
+    await store.checkStep('02', 'reach', '02', true);
+    await store.resolve('02', '02');
+    const state = store.current!;
+    expect(state.claims?.['02']).toBeUndefined();
+    expect(state.checklists?.['02']).toBeUndefined();
+    expect(state.overrides?.['02']).toBeDefined();
+    await store.claim('02', '04');
+    expect(store.current!.claims?.['02']?.by).toBe('04');
+  });
+
   it('ticks steps, marks the responder and clears with the alert', async () => {
     const backend = new MemoryBackend(newRoomState(0), () => 10_000);
     const store = new RoomStore(backend);

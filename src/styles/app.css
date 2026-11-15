@@ -4732,3 +4732,27 @@ html {
 .earth-msg.is-archived.is-replied .earth-msg__stage {
   display: none;
 }
+
+/* The person in trouble: the card informs, crewmates act. */
+.check__item:disabled {
+  cursor: default;
+}
+
+.check__item:disabled:hover {
+  background: transparent;
+  border-color: transparent;
+}
+
+.check__note {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.event__self {
+  margin: 0;
+  flex: 1 1 100%;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
