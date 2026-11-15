@@ -193,7 +193,7 @@ particle event factors are prototype assumptions:
 | Live sync and anonymous sign-in | [Firebase JavaScript SDK](https://firebase.google.com/) (Realtime Database, Authentication) | Apache-2.0 |
 | QR codes | [qrcode](https://github.com/soldair/node-qrcode) | MIT |
 | Build and tests | [Vite](https://vite.dev/), [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react), [Vitest](https://vitest.dev/) | MIT |
-| Language | [TypeScript](https://www.typescriptlang.org/) | Apache-2.0 |
+| Language | [TypeScript](https://www.typescriptlang.org/), type definitions from [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped) (`@types/react`, `@types/react-dom`, `@types/three`, `@types/qrcode`) | Apache-2.0, MIT |
 | Preparing the 3D model (one-off) | [glTF Transform](https://gltf-transform.dev/), [draco3dgltf](https://github.com/google/draco) | MIT, Apache-2.0 |
 | Typeface | [Manrope](https://fonts.google.com/specimen/Manrope) via Google Fonts | SIL Open Font License 1.1 |
 
