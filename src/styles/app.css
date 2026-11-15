@@ -4834,3 +4834,350 @@ html {
   transform-origin: left;
   transition: transform 0.4s linear;
 }
+
+/* ---------- Nutrition (tablet) and diets (medical officer) ---------- */
+
+.nut {
+  container-type: inline-size;
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  padding: 14px 16px;
+  background: var(--panel);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line));
+  border-radius: var(--radius-sm);
+}
+
+.nut__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nut__head h3 {
+  flex: 1;
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.nut__chip {
+  padding: 2px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--on-alert);
+  background: var(--accent);
+  border-radius: 99px;
+}
+
+.nut__alert,
+.nut__diet,
+.nut__note {
+  margin: 0;
+  padding: 9px 12px;
+  font-size: 14px;
+  line-height: 1.45;
+  border-radius: 10px;
+}
+
+.nut__alert {
+  background: color-mix(in srgb, var(--l2) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--l2) 50%, transparent);
+}
+
+.nut__diet {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent) 40%, transparent);
+}
+
+.nut__note {
+  color: var(--dim);
+  border: 1px dashed var(--line);
+}
+
+.nut__bars {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px 16px;
+}
+
+.nut-bar {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 8px;
+  align-items: baseline;
+  min-width: 0;
+}
+
+.nut-bar__label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.nut-bar__value {
+  font-size: 12px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.nut-bar__track {
+  grid-column: 1 / -1;
+  height: 6px;
+  border-radius: 99px;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  overflow: hidden;
+}
+
+.nut-bar__track span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transform-origin: left;
+  transition: transform 0.4s ease;
+}
+
+.nut-bar.is-limit .nut-bar__track span {
+  background: color-mix(in srgb, var(--accent) 55%, var(--dim));
+}
+
+.nut-bar.is-over .nut-bar__value {
+  color: var(--l2);
+}
+
+.nut-bar.is-over .nut-bar__track span {
+  background: var(--l2);
+}
+
+.nut h4 {
+  margin: 0 0 8px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.nut-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.nut-food {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.nut-food--pick {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--line));
+}
+
+.nut-food__text {
+  display: grid;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.nut-food__text strong {
+  font-size: 14px;
+}
+
+.nut-food__reason {
+  font-size: 13px;
+  color: var(--accent);
+}
+
+.nut-food__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+.nut-food__tags > span:not(.nut-food__facts) {
+  padding: 0 7px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+}
+
+.nut-food__facts {
+  font-variant-numeric: tabular-nums;
+}
+
+.nut-food__time {
+  flex: none;
+  font-size: 12px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.nut-food .btn-ghost {
+  flex: none;
+  min-height: 36px;
+  border-radius: 99px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.nut__menu,
+.nut__how {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.nut__menu summary,
+.nut__how summary {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  min-height: 44px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  list-style: none;
+}
+
+.nut__menu summary::-webkit-details-marker,
+.nut__how summary::-webkit-details-marker {
+  display: none;
+}
+
+.nut__menu summary::before,
+.nut__how summary::before {
+  content: '▸';
+  color: var(--accent);
+  transition: transform 0.2s;
+}
+
+.nut__menu[open] summary::before,
+.nut__how[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.nut__menu > :not(summary),
+.nut__how > :not(summary) {
+  margin: 0 12px 12px;
+}
+
+.nut__how p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--dim);
+}
+
+.nut-kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.nut-kinds button {
+  min-height: 34px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  cursor: pointer;
+}
+
+.nut-kinds button.is-on {
+  color: var(--on-alert);
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.nut-list--menu {
+  max-height: 320px;
+  overflow-y: auto;
+}
+
+.nut__empty,
+.nut__src {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dim);
+}
+
+@container (max-width: 420px) {
+  .nut-food {
+    flex-wrap: wrap;
+  }
+  .nut-food .btn-ghost {
+    margin-left: auto;
+  }
+}
+
+.nut-cmo {
+  display: grid;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.nut-cmo__line {
+  margin: 0;
+  font-size: 13px;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.nut-cmo__line strong {
+  color: var(--text);
+}
+
+.nut-cmo__diets {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.nut-cmo__diets > span {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.diet-chip {
+  min-height: 34px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 13px;
+  color: var(--text);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  cursor: pointer;
+}
+
+.diet-chip small {
+  color: var(--dim);
+}
+
+.diet-chip.is-suggested {
+  border-style: dashed;
+  border-color: var(--accent);
+}
+
+.diet-chip.is-on {
+  color: var(--on-alert);
+  background: var(--accent);
+  border-color: var(--accent);
+}

@@ -6,6 +6,7 @@ import type { EarthMessage } from './earth';
 import type { ReactionResult } from './reaction';
 import type { AstronautId, ProfileId } from './crew';
 import type { LocationId } from './locations';
+import type { DietId } from './nutrition';
 import type { Level, VitalId } from './vitals';
 
 export interface Override {
@@ -33,6 +34,10 @@ export interface RoomState {
   glucoseChecks?: Partial<Record<AstronautId, { value: number; at: number }>>;
   /** Crew members moved away from their starting location. */
   locations?: Partial<Record<AstronautId, LocationId>>;
+  /** Foods logged from the ISS menu, keyed by the time they were logged (see nutrition.ts). */
+  meals?: Partial<Record<AstronautId, Record<string, { food: string; at: number }>>>;
+  /** Diets the medical officer approved for a health condition. */
+  diets?: Partial<Record<AstronautId, Partial<Record<DietId, { by: AstronautId; at: number }>>>>;
   /** Tether pulls back to the airlock during a spacewalk emergency (see tether.ts). */
   pulls?: Partial<Record<AstronautId, { by: AstronautId; at: number }>>;
   /** Answers to a sensor's symptom question on the watch (e.g. "Do your fingers feel numb?"). */

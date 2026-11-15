@@ -29,6 +29,8 @@ export interface Astronaut {
   commander?: boolean;
   /** Anonymised Inspiration4 crew member whose real measurements anchor this astronaut's baseline. */
   osdrSubject: OsdrSubject;
+  /** Simulated body data for the energy estimate (see nutrition.ts). Sex selects the formula's coefficients. */
+  body: { age: number; sex: 'female' | 'male'; heightCm: number; weightKg: number };
   baseline: {
     heartRate: number;
     spo2: number;
@@ -49,6 +51,7 @@ export const CREW: Astronaut[] = [
     home: 'habitat',
     commander: true,
     osdrSubject: 'C002',
+    body: { age: 44, sex: 'female', heightCm: 168, weightKg: 62 },
     baseline: { heartRate: 66, spo2: 98, systolic: 116, diastolic: 76, bodyTemp: 36.8, glucose: glucoseBaseline('C002'), sleep: 7.4 },
   },
   {
@@ -58,6 +61,7 @@ export const CREW: Astronaut[] = [
     role: 'Mission Specialist',
     home: 'eva',
     osdrSubject: 'C001',
+    body: { age: 38, sex: 'male', heightCm: 182, weightKg: 84 },
     baseline: { heartRate: 84, spo2: 97, systolic: 122, diastolic: 80, bodyTemp: 37.0, glucose: glucoseBaseline('C001'), sleep: 7.6 },
   },
   {
@@ -68,6 +72,7 @@ export const CREW: Astronaut[] = [
     home: 'lab',
     cmo: true,
     osdrSubject: 'C003',
+    body: { age: 41, sex: 'female', heightCm: 172, weightKg: 66 },
     baseline: { heartRate: 62, spo2: 98, systolic: 112, diastolic: 72, bodyTemp: 36.7, glucose: glucoseBaseline('C003'), sleep: 7.8 },
   },
   {
@@ -77,6 +82,7 @@ export const CREW: Astronaut[] = [
     role: 'Mission Specialist',
     home: 'airlock',
     osdrSubject: 'C004',
+    body: { age: 35, sex: 'male', heightCm: 175, weightKg: 72 },
     baseline: { heartRate: 72, spo2: 98, systolic: 118, diastolic: 78, bodyTemp: 36.9, glucose: glucoseBaseline('C004'), sleep: 7.5 },
   },
 ];

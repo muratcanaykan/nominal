@@ -34,6 +34,16 @@ that helps astronauts assess their own health and guides them on what to do.
   day after landing, with the lab range, the change and a small chart across all seven tests. The values are real
   measurements of an anonymised commercial spaceflight crew from NASA OSDR, one crew member per simulated astronaut;
   each value says why it matters in spaceflight. Blood tests are periodic, so this is not a live reading.
+- **Nutrition** — each tablet logs what the crew member ate from the ISS standard menu (93 foods with NASA's nutrition
+  values) and tracks the day against personal targets. Energy comes from the basal energy formula in NASA's nutrition
+  guide × an activity factor, plus 200 kcal per spacewalk hour as NASA plans it; protein, calcium and fibre have
+  targets, sodium and saturated fat have limits. BMI is shown for context only. Rule-based suggestions name the next
+  foods for the meal the mission clock is at and say why (for example "31 g protein toward your 67 g"). Low glucose
+  switches the suggestions to about 15 g of fast-acting carbohydrate. Live readings can point to a diet (low sodium for
+  high blood pressure, lower sugar for high glucose, extra fluids for a fever); it only applies once the medical officer
+  approves it, and the medical officer sees each crew member's intake for the day. Height, weight and age are
+  simulated; the rules are prototype values, not dietary advice ([`src/domain/nutrition.ts`](src/domain/nutrition.ts),
+  [`src/data/issMenu.ts`](src/data/issMenu.ts)).
 - **Cabin screen** — a shared display that shows device connectivity, a live 3D view of the vehicle with where each
   crew member is, and only the alerts that need crew action. Routine health values stay private: in the cabin's 3D
   view only critical alerts and help calls are visible. Each crew alert carries a response checklist (reach the crew
@@ -124,6 +134,15 @@ that helps astronauts assess their own health and guides them on what to do.
   labels ([`scripts/fetch-osdr.mjs`](scripts/fetch-osdr.mjs) → [`src/data/osdr-inspiration4.json`](src/data/osdr-inspiration4.json),
   [`src/domain/labs.ts`](src/domain/labs.ts)).
 
+- NASA STEMonstrations — [Nutrition](https://www.nasa.gov/stem-content/stemonstrations-nutrition/) classroom
+  connection ([PDF](https://www.nasa.gov/wp-content/uploads/2023/03/stemonstrations-nutrition.pdf)). Its appendix,
+  International Space Station Standard Menu Nutritional Data, gives the 93 foods and their values in the nutrition
+  panel ([`src/data/issMenu.ts`](src/data/issMenu.ts)); its worked example gives the basal energy formula and the
+  activity factors.
+- NASA — [Exploration nutritional requirements (JSC-67378)](https://ntrs.nasa.gov/api/citations/20205008306/downloads/JSC67378%20Expl%20Nutr%20Reqs%20042020.pdf):
+  an extra 200 kcal for every hour of a spacewalk.
+- [Food for Space Flight](https://www.worldspaceflight.com/bios/spacefood.php) (from a NASA fact sheet) — the same basal
+  energy formula was used to plan Space Shuttle crew diets.
 - NASA 3D Resources — [Astronaut](https://science.nasa.gov/3d-resources/) model
   ([GitHub mirror](https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Astronaut)), used in the 3D
   simulation. For the web the mesh was decompressed and its textures removed
@@ -186,6 +205,21 @@ particle event factors are prototype assumptions:
   Rover", Science 343(6169), 2014 — 0.64 mSv per day on the surface of Mars.
 - NASA-STD-3001 Volume 1 — NASA Space Flight Human-System Standard, crew health (600 mSv career effective dose
   limit).
+
+### Nutrition
+
+Targets and rules used in [`src/domain/nutrition.ts`](src/domain/nutrition.ts); the activity factor, the planned
+spacewalk length and the suggestion scoring are prototype assumptions:
+
+- U.S. Department of Agriculture and U.S. Department of Health and Human Services,
+  [Dietary Guidelines for Americans, 2020–2025](https://www.dietaryguidelines.gov/sites/default/files/2020-12/Dietary_Guidelines_for_Americans_2020-2025.pdf),
+  Appendix 1 — calcium 1,000 mg, fibre 14 g per 1,000 kcal, sodium under 2,300 mg, saturated fat under 10 % of energy.
+- Institute of Medicine, [Dietary Reference Intakes for Energy, Carbohydrate, Fiber, Fat, Fatty Acids, Cholesterol,
+  Protein, and Amino Acids](https://nap.nationalacademies.org/catalog/10490) (2005) — protein 0.8 g per kg body weight.
+- U.S. Food and Drug Administration, [21 CFR 101.61](https://www.ecfr.gov/current/title-21/chapter-I/subchapter-B/part-101/subpart-D/section-101.61)
+  — "low sodium" means 140 mg or less per serving.
+- American Diabetes Association — [Hypoglycemia (low blood glucose)](https://diabetes.org/living-with-diabetes/hypoglycemia-low-blood-glucose):
+  the 15-15 rule, about 15 g of fast-acting carbohydrate and a recheck after 15 minutes.
 
 ### Software, libraries and fonts
 

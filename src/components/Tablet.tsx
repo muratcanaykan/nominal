@@ -15,6 +15,7 @@ import { useNow, useRoom } from '../lib/useRoom';
 import { formatAgo, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { TetherPull } from './TetherPull';
+import { NutritionPanel } from './Nutrition';
 import { BodyMap } from './BodyMap';
 import { RadiationCard } from './Radiation';
 import { LabPanel } from './LabPanel';
@@ -121,6 +122,8 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
       <VitalTiles s={s} state={state} now={now} />
 
       <ReactionTest id={id} state={state} now={now} sleepHours={s.connected ? s.readings.sleep.value : null} />
+
+      <NutritionPanel id={id} state={state} now={now} s={s} />
 
       <div className="tablet__cols">
         <section className="tablet__section">

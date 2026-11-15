@@ -16,6 +16,8 @@ import { median, reactionAdvice, scoreReaction } from './reaction';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 import { canPull, PULL_MS, pullOf } from './tether';
 import { locationOf } from './locations';
+import { ISS_MENU } from '../data/issMenu';
+import { basalEnergy, dayStart, mealsToday, plan, suggestedDiets, targets, totals } from './nutrition';
 
 describe('levelFor', () => {
   it('maps values to nested threshold bands', () => {
@@ -571,5 +573,82 @@ describe('tether pull', () => {
     const beats = personBeats(prev, next, '02', s, after);
     expect(beats[0].title).toBe('Mara Kaya is pulling Daniel Okafor in by the tether');
     expect(beats.some((b) => b.title.includes('moved to'))).toBe(false);
+  });
+});
+
+describe('nutrition', () => {
+  it('menu rows add up: energy matches protein, carbohydrate and fat', () => {
+    const ids = ISS_MENU.map((f) => f.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const f of ISS_MENU) {
+      // NASA's table prints 54.4 kcal for this soup although its macronutrients add up to about 77 kcal.
+      if (f.id === 'hot-and-sour-soup') continue;
+      const est = 4 * f.protein + 4 * Math.max(0, f.carbs - f.fiber) + 2 * f.fiber + 9 * f.fat;
+      const off = Math.abs(f.kcal - est);
+      expect(off < 15 || off / f.kcal < 0.15, f.name).toBe(true);
+    }
+  });
+
+  it('basal energy matches the worked example in NASA\'s nutrition guide', () => {
+    expect(basalEnergy({ age: 40, sex: 'male', heightCm: 183, weightKg: 93 })).toBeCloseTo(1989.8, 1);
+    expect(basalEnergy({ age: 38, sex: 'female', heightCm: 155, weightKg: 55 })).toBeCloseTo(1290.1, 1);
+  });
+
+  it('adds the spacewalk allowance for crew in the suit', () => {
+    const state = newRoomState(0);
+    const inside = targets(state, '01');
+    const outside = targets(state, '02');
+    expect(inside.evaDay).toBe(false);
+    expect(outside.evaKcal).toBe(1300);
+    expect(outside.kcal).toBe(Math.round(outside.basal * 1.55 + 1300));
+    expect(inside.sodiumMax).toBe(2300);
+  });
+
+  it('logs meals for the mission day and suggests breakfast first', async () => {
+    let now = 60_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => now));
+    const s = () => snapshot(store.current!, '01', now);
+    const first = plan(store.current, '01', now, s());
+    // The demo opens at 06:17 on mission day 12.
+    expect(first.slot).toBe('breakfast');
+    expect(first.suggestions).toHaveLength(3);
+    for (const x of first.suggestions) expect(['breakfast', 'fruit', 'drink']).toContain(x.food.kind);
+    expect(new Set(first.suggestions.map((x) => x.food.kind)).size).toBe(3);
+
+    await store.logMeal('01', 'scrambled-eggs');
+    now += 1000;
+    await store.logMeal('01', 'orange-juice');
+    const meals = mealsToday(store.current, '01', now);
+    expect(meals.map((m) => m.food.id)).toEqual(['scrambled-eggs', 'orange-juice']);
+    expect(totals(meals.map((m) => m.food)).kcal).toBeCloseTo(306.6, 1);
+    await store.removeMeal('01', meals[1].key);
+    expect(mealsToday(store.current, '01', now)).toHaveLength(1);
+    // A new mission day starts with an empty log.
+    const tomorrow = dayStart(store.current, now) + 24 * 3600 * 1000 + 1;
+    expect(mealsToday(store.current, '01', tomorrow)).toHaveLength(0);
+  });
+
+  it('a diet needs the medical officer and changes the suggestions', async () => {
+    const now = 60_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => now));
+    await store.setDiet('01', 'lowSodium', true, '04');
+    expect(store.current!.diets).toBeUndefined();
+    await store.setDiet('01', 'lowSodium', true, '03');
+    expect(store.current!.diets?.['01']?.lowSodium?.by).toBe('03');
+    const p = plan(store.current, '01', now, snapshot(store.current!, '01', now));
+    for (const x of p.suggestions) expect(x.food.sodium).toBeLessThanOrEqual(400);
+  });
+
+  it('low glucose asks for fast-acting carbohydrate; fever suggests fluids', async () => {
+    let now = 60_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => now));
+    await store.runScenario('01', 'lowGlucose');
+    now += 15_000;
+    const p = plan(store.current, '01', now, snapshot(store.current!, '01', now));
+    expect(p.fastCarbs).toBe(true);
+    for (const x of p.suggestions) expect(x.food.carbs).toBeGreaterThanOrEqual(10);
+    await store.runScenario('03', 'fever');
+    now += 15_000;
+    expect(suggestedDiets(snapshot(store.current!, '03', now))).toContain('fluids');
   });
 });

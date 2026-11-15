@@ -1,13 +1,14 @@
 // Room store: the same actions work against Firebase (cross-device) or memory (single page).
 
 import type { PainSite } from '../domain/body';
-import type { AstronautId, ProfileId } from '../domain/crew';
+import { CREW_BY_ID, type AstronautId, type ProfileId } from '../domain/crew';
 import type { LocationId } from '../domain/locations';
 import { ackKey, applyPatch, findUndefined, newRoomState, type Patch, type RoomState } from '../domain/room';
 import { composeMessage, type MessageKind } from '../domain/earth';
 import { scoreReaction } from '../domain/reaction';
 import { scenarioPatch, type ScenarioId } from '../domain/scenarios';
 import { canPull } from '../domain/tether';
+import type { DietId } from '../domain/nutrition';
 import type { Level, VitalId } from '../domain/vitals';
 
 export type RoomStatus = 'connecting' | 'ready' | 'missing' | 'error';
@@ -168,6 +169,22 @@ export class RoomStore {
       patch[`messages/${now}-${by}`] = composeMessage(after, by, id, 'status', now);
     }
     return this.update(patch);
+  }
+
+  /** Logs a food from the ISS menu as eaten now. */
+  logMeal(id: AstronautId, food: string) {
+    const now = this.now();
+    return this.update({ [`meals/${id}/${now}`]: { food, at: now } });
+  }
+
+  removeMeal(id: AstronautId, key: string) {
+    return this.update({ [`meals/${id}/${key}`]: null });
+  }
+
+  /** Only the medical officer approves or ends a diet. */
+  setDiet(id: AstronautId, diet: DietId, on: boolean, by: AstronautId) {
+    if (!CREW_BY_ID[by].cmo) return Promise.resolve();
+    return this.update({ [`diets/${id}/${diet}`]: on ? { by, at: this.now() } : null });
   }
 
   /** Saves a finished alertness check (reaction test). */

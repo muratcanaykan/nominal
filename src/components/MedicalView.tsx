@@ -13,6 +13,7 @@ import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../
 import { formatAgo, formatDelay, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { TetherPull } from './TetherPull';
+import { DietControls } from './Nutrition';
 import { BodyMap } from './BodyMap';
 import { RadiationLine } from './Radiation';
 import { EarthPanel } from './EarthLink';
@@ -123,6 +124,7 @@ function CrewCard({
       </header>
       {alert && <ResponseLine alert={alert} state={state} />}
       {cmo && <TetherPull id={a.id} by={cmo.id} now={now} />}
+      {cmo && <DietControls id={a.id} state={state} now={now} s={s} by={cmo.id} />}
       <div className="cmo-card__body">
         <BodyMap s={s} state={state} compact />
         <VitalTiles s={s} state={state} now={now} />
