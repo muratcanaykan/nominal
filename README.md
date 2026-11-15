@@ -69,6 +69,9 @@ that helps astronauts assess their own health and guides them on what to do.
   Arms and legs move (a help call waves, a cold hand shakes), data pulses show telemetry going to the vehicle, warnings
   going to the medical officer and critical alerts travelling to Earth with the mission's signal delay. The cabin
   screen hangs inside the habitat module; clicking it opens the live cabin screen. The view has a full-screen mode.
+  Crew in the airlock or outside wear the spacesuit; inside the vehicle they wear a coverall over a smart shirt, with
+  the watch on the left wrist, whose screen shows the wearer's status colour. The coverall models are split into body
+  regions by part name, so clicking and region alerts work the same way ([`src/three/crewGeometry.ts`](src/three/crewGeometry.ts)).
 - **Early warning** — when a reading drifts steadily away from the crew member's own baseline toward the next alert
   level, the watch, the tablet and the medical officer see how soon it will get there (for example "Blood oxygen
   falling · Warning in about 1 min"), so the crew can act before the alert. Normal sensor noise does not trigger it, and neither does a sudden jump
@@ -152,6 +155,8 @@ that helps astronauts assess their own health and guides them on what to do.
 ## Space agency partner resources
 
 - Canadian Space Agency — [Monitoring Radiation for Astronaut Health](https://www.asc-csa.gc.ca/eng/news/articles/2026/2026-02-26-monitoring-radiation-astronaut-health.asp)
+- Canadian Space Agency — [Bio-Monitor: Keeping an eye on astronauts' vital signs](https://www.asc-csa.gc.ca/eng/sciences/astroskin.asp):
+  the smart shirt tested on the space station is the model for the sensor shirt crew members wear inside the vehicle.
 
 ## Other references
 

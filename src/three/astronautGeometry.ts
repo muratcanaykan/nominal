@@ -35,7 +35,7 @@ export function regionAt(x: number, y: number, z: number): BodyRegion {
 export type PartId = 'core' | 'armL' | 'armR' | 'legL' | 'legR';
 export const PART_IDS: PartId[] = ['core', 'armL', 'armR', 'legL', 'legR'];
 
-const PART_OF: Record<BodyRegion, PartId> = {
+export const PART_OF: Record<BodyRegion, PartId> = {
   head: 'core',
   chest: 'core',
   leftShoulder: 'core',
@@ -96,6 +96,22 @@ export interface RegionCentre {
 export interface AstronautParts {
   parts: Record<PartId, Part>;
   centres: Record<BodyRegion, RegionCentre>;
+}
+
+/** One material of a body: the draw groups with this material index belong to `region`. */
+export interface Slot {
+  region: BodyRegion;
+  color: THREE.Color;
+  /** The watch screen, which glows in the wearer's status colour. */
+  screen?: boolean;
+}
+
+/** Everything the 3D view needs to draw one kind of body: the spacesuit or a crew model for inside the vehicle. */
+export interface BodyKit extends AstronautParts {
+  slots: Slot[];
+  visor: THREE.BufferGeometry | null;
+  /** How far below horizontal the model's arms hang at rest (0 for arms held straight out). */
+  armRest: number;
 }
 
 export function regionParts(src: THREE.BufferGeometry, height: number, bounds: THREE.Box3): AstronautParts {

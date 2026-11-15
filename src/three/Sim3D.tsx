@@ -1,5 +1,6 @@
 // 3D mission simulation: the vehicle, the crew inside or on a spacewalk, and suit regions glowing in alert colours.
-// Astronaut model: NASA 3D Resources ("Astronaut"), rendered with our own materials. All data is simulated.
+// Spacesuit model: NASA 3D Resources ("Astronaut"), rendered with our own materials; crew inside the vehicle use the
+// coverall models in public/models/crew-*.glb (see crewGeometry.ts). All data is simulated.
 
 import { Billboard, Edges, Html, Line, OrbitControls, Stars, useGLTF } from '@react-three/drei';
 import { Canvas, useFrame } from '@react-three/fiber';
@@ -18,10 +19,18 @@ import { useNow, useRoom } from '../lib/useRoom';
 import { formatDelay } from '../components/bits';
 import { MAP_ZONES, mapMarkers, type MapMarker } from '../components/CrewMap';
 import { LOCATION_IDS } from '../domain/locations';
-import { orient, regionParts, REGIONS } from './astronautGeometry';
+import { orient, regionParts, REGIONS, type BodyKit } from './astronautGeometry';
+import { crewParts } from './crewGeometry';
+import { LOCATIONS } from '../domain/locations';
 
 const MODEL_URL = '/models/astronaut-web.glb';
+/** Crew models for inside the vehicle (coverall, smart shirt and watch), one per body type. */
+const CREW_MODEL_URL = { female: '/models/crew-female.glb', male: '/models/crew-male.glb' } as const;
 const HEIGHT = 1.45;
+/** Without the bulky spacesuit a crew member is a little smaller. */
+const CREW_HEIGHT = HEIGHT * 0.94;
+const SUIT_WHITE = new THREE.Color('#e9eef4');
+const OFFLINE_GREY = new THREE.Color('#6b7280');
 const LEVEL_COLOR: Record<Level | 'nodata', string> = { 0: '#34d399', 1: '#fcd34d', 2: '#fb923c', 3: '#fb5072', nodata: '#94a3b8' };
 const ACCENT = '#7dd3fc';
 
@@ -161,7 +170,16 @@ function useCrewVisuals(mode: SceneMode): { crew: CrewVisual[]; profile: Profile
 
 // ---- astronaut ------------------------------------------------------------------------------------------
 
-function useAstronautGeometry() {
+/** The spacesuit for the airlock and spacewalks, and the crew models for inside the vehicle. */
+function useBodyKits(): Record<'suit' | 'female' | 'male', BodyKit> {
+  const suit = useSuitKit();
+  const female = useGLTF(CREW_MODEL_URL.female, false);
+  const male = useGLTF(CREW_MODEL_URL.male, false);
+  const crew = useMemo(() => ({ female: crewParts(female.scene, CREW_HEIGHT), male: crewParts(male.scene, CREW_HEIGHT) }), [female, male]);
+  return useMemo(() => ({ suit, ...crew }), [suit, crew]);
+}
+
+function useSuitKit(): BodyKit {
   const gltf = useGLTF(MODEL_URL, false);
   return useMemo(() => {
     const meshes: THREE.Mesh[] = [];
@@ -174,7 +192,7 @@ function useAstronautGeometry() {
     const bounds = suit.boundingBox!.clone();
     const { parts, centres } = regionParts(suit.clone(), HEIGHT, bounds);
     const visor = meshes[1] ? orient(meshes[1].geometry.clone(), HEIGHT, bounds) : null;
-    return { parts, centres, visor };
+    return { parts, centres, visor, slots: REGIONS.map((region) => ({ region, color: SUIT_WHITE })), armRest: 0 };
   }, [gltf]);
 }
 
@@ -223,7 +241,10 @@ function Astronaut({
   positions: Map<AstronautId, THREE.Vector3>;
   reduce: boolean;
 }) {
-  const { parts, centres, visor } = useAstronautGeometry();
+  const kits = useBodyKits();
+  // The spacesuit in the airlock and outside; inside the vehicle the crew model with coverall, smart shirt and watch.
+  const kit = LOCATIONS[v.location].suited ? kits.suit : kits[CREW_BY_ID[v.id].body.sex];
+  const { parts, centres, visor } = kit;
   const marker = useRef<THREE.Group>(null);
   const group = useRef<THREE.Group>(null);
   const armL = useRef<THREE.Group>(null);
@@ -239,16 +260,16 @@ function Astronaut({
 
   const materials = useMemo(
     () =>
-      REGIONS.map(
-        () =>
+      kit.slots.map(
+        (slot) =>
           new THREE.MeshStandardMaterial({
-            color: '#e9eef4',
-            roughness: 0.62,
+            color: slot.color,
+            roughness: slot.screen ? 0.3 : 0.62,
             metalness: 0.05,
             emissive: new THREE.Color('#000000'),
           }),
       ),
-    [],
+    [kit],
   );
   const visorMaterial = useMemo(
     () => new THREE.MeshStandardMaterial({ color: '#d9a441', metalness: 0.9, roughness: 0.18, emissive: new THREE.Color('#000000') }),
@@ -305,17 +326,25 @@ function Astronaut({
       left = -1.25;
       right = 1.25;
     }
-    if (armL.current) armL.current.rotation.z = left;
-    if (armR.current) armR.current.rotation.z = right;
+    // The crew models hang their arms lower at rest than the spacesuit (arms out straight), so that is added back.
+    if (armL.current) armL.current.rotation.z = left + kit.armRest;
+    if (armR.current) armR.current.rotation.z = right - kit.armRest;
     const kick = reduce || offline ? 0 : Math.sin(t * 0.7 + phase) * (eva ? 0.2 : 0.1);
     if (legL.current) legL.current.rotation.x = kick;
     if (legR.current) legR.current.rotation.x = -kick;
 
-    // Region glow.
-    REGIONS.forEach((region, i) => {
+    // Region glow. Each material keeps its own colour (suit white, coverall blue, skin, hair…) and lights up in the
+    // alert colour of its body region. The watch screen shows the wearer's overall status colour.
+    kit.slots.forEach((slot, i) => {
       const m = materials[i];
-      const level = v.regions[region] ?? 0;
-      m.color.set(offline ? '#6b7280' : '#e9eef4');
+      const level = v.regions[slot.region] ?? 0;
+      m.color.copy(slot.color);
+      if (offline) m.color.lerp(OFFLINE_GREY, 0.7);
+      if (slot.screen) {
+        m.emissive.set(offline ? '#000000' : LEVEL_COLOR[v.worst]);
+        m.emissiveIntensity = offline ? 0 : v.worst >= 2 && !reduce ? 0.6 + 0.8 * pulse(t, 1) : 0.9;
+        return;
+      }
       if (offline || level === 0) {
         m.emissiveIntensity = 0;
         return;
@@ -327,11 +356,14 @@ function Astronaut({
     });
     // The chosen region glows in the accent colour (on top of any alert colour) and its marker pulses.
     if (focusRegion && !offline) {
-      const m = materials[REGIONS.indexOf(focusRegion)];
       const p = reduce ? 1 : pulse(t, 1.1);
-      m.emissive.set(ACCENT);
-      m.emissiveIntensity = 0.7 + 0.9 * p;
-      m.color.set('#e9eef4').lerp(new THREE.Color(ACCENT), 0.45);
+      kit.slots.forEach((slot, i) => {
+        if (slot.region !== focusRegion || slot.screen) return;
+        const m = materials[i];
+        m.emissive.set(ACCENT);
+        m.emissiveIntensity = 0.7 + 0.9 * p;
+        m.color.copy(slot.color).lerp(new THREE.Color(ACCENT), 0.45);
+      });
     }
     if (marker.current) {
       const k = reduce ? 1 : 1 + 0.25 * Math.sin(t * 5);
@@ -364,7 +396,8 @@ function Astronaut({
         e.stopPropagation();
         // Each body mesh has one draw group per region; the hit face tells which region was clicked.
         const index = e.face?.materialIndex;
-        if (selected && onRegion && index !== undefined && REGIONS[index]) onRegion(v.id, REGIONS[index]);
+        const region = index !== undefined ? kit.slots[index]?.region : undefined;
+        if (selected && onRegion && region) onRegion(v.id, region);
         else onSelect(v.id);
       }}
       onPointerOver={() => (document.body.style.cursor = 'pointer')}
@@ -1051,3 +1084,5 @@ export default function Sim3D(props: SceneProps) {
 }
 
 useGLTF.preload(MODEL_URL, false);
+useGLTF.preload(CREW_MODEL_URL.female, false);
+useGLTF.preload(CREW_MODEL_URL.male, false);

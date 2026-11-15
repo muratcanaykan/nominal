@@ -179,8 +179,8 @@ export function BodyMap({
         <p className="bodymap-panel__legend">
           <span className="bodymap-panel__dot" aria-hidden="true" />
           {suited
-            ? 'Sensors: watch, temperature patch, glucose sensor, and suit sensors in the helmet, gloves and shoulders.'
-            : 'Sensors: watch, temperature patch and glucose sensor. Suit sensors report only while suited.'}
+            ? 'In the spacesuit: watch, temperature patch, glucose sensor, and suit sensors in the helmet, gloves and shoulders.'
+            : 'Inside the vehicle: smart shirt under the coverall (heart and breathing), watch, temperature patch and glucose sensor. Suit sensors report only while suited.'}
         </p>
       </div>
       )}
