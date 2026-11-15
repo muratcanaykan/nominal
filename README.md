@@ -19,6 +19,15 @@ that helps astronauts assess their own health and guides them on what to do.
 
 ## What it does
 
+| | |
+| --- | --- |
+| ![Four crew watches at nominal, critical, warning and caution](docs/screenshots/1-watches-alert-levels.png) | ![The watch at warning beside the ladder of who is told at each level](docs/screenshots/5-who-is-told.png) |
+| ![Cabin screen event card with the shared response checklist](docs/screenshots/2-cabin-screen-checklist.png) | ![The medical officer's message to flight surgeons on Earth and the delayed reply](docs/screenshots/4-messages-to-earth.png) |
+
+![3D mission view: spacesuits in the airlock and outside, coveralls inside the vehicle](docs/screenshots/3-mission-3d.png)
+
+_Screenshots of the live demo. All readings are simulated._
+
 - **Watch** — each astronaut sees only their own indicators, colour-coded by status, with an info panel that explains
   each value and what to do, and a help button.
 - **Tablet** — each astronaut's own detailed readings, short trends and history. The commander's tablet adds each crew
