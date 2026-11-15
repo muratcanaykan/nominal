@@ -16,6 +16,7 @@ import { formatAgo, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { RadiationCard } from './Radiation';
+import { LabPanel } from './LabPanel';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 import { MedicalOverview, PinGate, readUnlocked } from './MedicalView';
 
@@ -131,6 +132,7 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
           <p>Only you see this tablet view. Trends show the last 5 minutes; the shaded band is the nominal range.</p>
         </section>
       </div>
+      <LabPanel subject={a.osdrSubject} />
     </div>
   );
 }

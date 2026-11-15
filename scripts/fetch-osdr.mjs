@@ -1,6 +1,7 @@
-// Downloads the Inspiration4 Comprehensive Metabolic Panel (NASA OSDR, OSD-575) and saves the glucose values per
-// anonymised crew member and timepoint to src/data/osdr-inspiration4.json. The data is historical, so this runs on
-// demand (`npm run data:osdr`), not on every build.
+// Downloads the Inspiration4 Comprehensive Metabolic Panel (NASA OSDR, OSD-575) and saves, per anonymised crew member
+// and timepoint, the glucose values (personal baselines) and a set of lab values with their reference ranges (lab
+// panel) to src/data/osdr-inspiration4.json. The data is historical, so this runs on demand (`npm run data:osdr`), not
+// on every build.
 
 import { writeFile } from 'node:fs/promises';
 
@@ -8,6 +9,19 @@ const ACCESSION = 'OSD-575';
 const FILE = 'LSDS-8_Comprehensive_Metabolic_Panel_CMP.upload_SUBMITTED.csv';
 const URL = `https://osdr.nasa.gov/geode-py/ws/studies/${ACCESSION}/download?source=datamanager&file=${FILE}`;
 const PREFLIGHT = ['L-92', 'L-44', 'L-3'];
+/** Lab panel values (eGFR is left out: the file reports it with race-based labels). */
+const LABS = [
+  'SODIUM',
+  'POTASSIUM',
+  'CHLORIDE',
+  'CARBON DIOXIDE',
+  'UREA NITROGEN (BUN)',
+  'CREATININE',
+  'CALCIUM',
+  'ALBUMIN',
+  'ALKALINE PHOSPHATASE',
+  'ALT',
+];
 
 const res = await fetch(URL, { signal: AbortSignal.timeout(60000) });
 if (!res.ok) throw new Error(`OSDR download failed: HTTP ${res.status}`);
@@ -18,12 +32,21 @@ const col = (name) => header.indexOf(name);
 const subjects = {};
 let units = '';
 let labRange = null;
+const num = (v) => (v === '' || Number.isNaN(Number(v)) ? null : Number(v));
 for (const line of lines) {
   const f = line.split(',');
-  if (f[col('ANALYTE')] !== 'GLUCOSE') continue;
+  const analyte = f[col('ANALYTE')];
   const id = f[col('SUBJECT_ID')];
   const value = Number(f[col('VALUE')]);
   if (Number.isNaN(value)) continue;
+  if (LABS.includes(analyte)) {
+    subjects[id] ??= { sex: f[col('SEX')], glucose: {} };
+    subjects[id].labs ??= {};
+    subjects[id].labs[analyte] ??= { units: f[col('UNITS')], range: [num(f[col('RANGE_MIN')]), num(f[col('RANGE_MAX')])], values: {} };
+    subjects[id].labs[analyte].values[f[col('timepoint')]] = value;
+    continue;
+  }
+  if (analyte !== 'GLUCOSE') continue;
   units = f[col('UNITS')];
   labRange = [Number(f[col('RANGE_MIN')]), Number(f[col('RANGE_MAX')])];
   subjects[id] ??= { sex: f[col('SEX')], glucose: {} };
@@ -46,8 +69,9 @@ const out = {
   labRange,
   timepoints: 'L-n = days before launch, R+n = days after return',
   preflightTimepoints: PREFLIGHT,
+  labs: LABS,
   subjects,
 };
 await writeFile('src/data/osdr-inspiration4.json', JSON.stringify(out, null, 1) + '\n');
-console.log(`OSDR: saved glucose for ${Object.keys(subjects).length} crew members (${units}).`);
+console.log(`OSDR: saved glucose and ${LABS.length} lab values for ${Object.keys(subjects).length} crew members.`);
 for (const [id, s] of Object.entries(subjects)) console.log(` ${id} ${s.sex} pre-flight ${s.preflightMean} → R+1 ${s.dayAfterLanding}`);

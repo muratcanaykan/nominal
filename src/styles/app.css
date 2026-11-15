@@ -4333,3 +4333,167 @@ html {
   text-decoration: none;
   color: var(--accent);
 }
+
+/* ---------- Lab results (OSDR blood panel) ---------- */
+
+.labs {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.labs summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  min-height: 44px;
+  padding: 12px 14px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.labs summary::-webkit-details-marker {
+  display: none;
+}
+
+.labs summary::before {
+  content: '▸';
+  color: var(--accent);
+  transition: transform 0.2s;
+}
+
+.labs[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.labs__title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+
+.labs__sum {
+  font-size: 13px;
+  color: var(--dim);
+}
+
+.labs__note {
+  margin: 0;
+  padding: 0 14px 10px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--dim);
+}
+
+.labs__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.labs__table th,
+.labs__table td {
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+  border-top: 1px solid var(--line);
+}
+
+.labs__table thead th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.labs__table tbody th {
+  font-weight: 400;
+}
+
+.labs__table tbody th strong {
+  display: block;
+  font-size: 14px;
+}
+
+.labs__table tbody th span {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--dim);
+}
+
+.labs__table td {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.labs__table small {
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.labs__change {
+  margin-left: 6px;
+  font-size: 12px;
+  font-style: normal;
+  color: var(--dim);
+}
+
+.labs__flag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 7px;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--on-alert);
+  background: var(--l1);
+  border-radius: 99px;
+}
+
+.labs__table tr.is-flagged td:nth-child(3) {
+  color: var(--l1);
+}
+
+.lab-chart {
+  width: 120px;
+  height: 30px;
+}
+
+.lab-chart__band {
+  fill: color-mix(in srgb, var(--l0) 12%, transparent);
+}
+
+.lab-chart__flight {
+  stroke: var(--line);
+  stroke-dasharray: 2 2;
+}
+
+.lab-chart__line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1.4;
+}
+
+.lab-chart__dot {
+  fill: var(--accent);
+}
+
+.lab-chart__after {
+  fill: var(--text);
+}
+
+@media (max-width: 720px) {
+  .labs__range-col,
+  .labs__chart-col {
+    display: none;
+  }
+
+  .labs__table td {
+    white-space: normal;
+  }
+}

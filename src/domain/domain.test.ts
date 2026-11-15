@@ -11,6 +11,7 @@ import { personBeats, personView } from './narrator';
 import { scenarioPatch } from './scenarios';
 import { checklistProgress, responseChecklist } from './response';
 import { ANSWER_MS, composeMessage, earthMessages, replyAt, replyText, stageOf } from './earth';
+import { labRows, LABS } from './labs';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
@@ -434,5 +435,23 @@ describe('messages to Earth', () => {
     expect(msgs).toHaveLength(1);
     expect(msgs[0].kind).toBe('status');
     expect(msgs[0].text).toContain('Response checklist 2/6 done');
+  });
+});
+
+describe('lab panel (NASA OSDR OSD-575)', () => {
+  it('has every lab value for every crew member, with the pre-flight mean and range flags', () => {
+    for (const subject of ['C001', 'C002', 'C003', 'C004'] as const) {
+      const rows = labRows(subject);
+      expect(rows.map((r) => r.def.key)).toEqual(LABS.map((l) => l.key));
+      for (const r of rows) {
+        expect(r.series).toHaveLength(7);
+        expect(r.before).toBeGreaterThan(0);
+      }
+    }
+    const potassium = labRows('C003').find((r) => r.def.key === 'POTASSIUM')!;
+    expect(potassium.after).toBe(3);
+    expect(potassium.flag).toBe('low');
+    const sodium = labRows('C001').find((r) => r.def.key === 'SODIUM')!;
+    expect(sodium.before).toBeCloseTo((141 + 139 + 142) / 3, 5);
   });
 });

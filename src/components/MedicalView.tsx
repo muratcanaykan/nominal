@@ -15,6 +15,7 @@ import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { RadiationLine } from './Radiation';
 import { EarthPanel } from './EarthLink';
+import { LabPanel } from './LabPanel';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 
 export const DEMO_PIN = '2468';
@@ -128,6 +129,7 @@ function CrewCard({
         {Math.round(subject.preflightMean)} mg/dL, {subject.dayAfterLanding} mg/dL the day after landing (NASA OSDR{' '}
         {OSDR_GLUCOSE.accession}).
       </p>
+      <LabPanel subject={a.osdrSubject} />
       <Timeline items={timeline(state, a.id).slice(0, 5)} now={now} />
     </article>
   );

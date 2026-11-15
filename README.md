@@ -24,6 +24,11 @@ that helps astronauts assess their own health and guides them on what to do.
 - **Tablet** — each astronaut's own detailed readings, short trends and history. The commander's tablet adds each crew
   member's duty status without any health values. The crew medical officer's tablet adds every crew member's details,
   trends and alert history.
+- **Lab results** — a blood panel on each tablet and in the medical officer's view: ten values (sodium, potassium,
+  chloride, bicarbonate, urea nitrogen, creatinine, calcium, albumin, alkaline phosphatase, ALT) before launch and the
+  day after landing, with the lab range, the change and a small chart across all seven tests. The values are real
+  measurements of an anonymised commercial spaceflight crew from NASA OSDR, one crew member per simulated astronaut;
+  each value says why it matters in spaceflight. Blood tests are periodic, so this is not a live reading.
 - **Cabin screen** — a shared display that shows device connectivity, a live 3D view of the vehicle with where each
   crew member is, and only the alerts that need crew action. Routine health values stay private: in the cabin's 3D
   view only critical alerts and help calls are visible. Each crew alert carries a response checklist (reach the crew
@@ -102,8 +107,11 @@ that helps astronauts assess their own health and guides them on what to do.
   browser.
 - NASA Open Science Data Repository — [OSD-575](https://osdr.nasa.gov/bio/repo/data/studies/OSD-575), Inspiration4
   Comprehensive Metabolic Panel. Each simulated astronaut's glucose baseline comes from the real pre-flight glucose of
-  one anonymised Inspiration4 crew member; the medical officer view shows that baseline and the post-landing value
-  ([`scripts/fetch-osdr.mjs`](scripts/fetch-osdr.mjs) → [`src/data/osdr-inspiration4.json`](src/data/osdr-inspiration4.json)).
+  one anonymised Inspiration4 crew member; the medical officer view shows that baseline and the post-landing value.
+  The lab results panel shows ten more values from the same panel, with the lab's reference ranges, at all seven
+  timepoints (three before launch, four after return); eGFR is left out because the file reports it with race-based
+  labels ([`scripts/fetch-osdr.mjs`](scripts/fetch-osdr.mjs) → [`src/data/osdr-inspiration4.json`](src/data/osdr-inspiration4.json),
+  [`src/domain/labs.ts`](src/domain/labs.ts)).
 
 - NASA 3D Resources — [Astronaut](https://science.nasa.gov/3d-resources/) model
   ([GitHub mirror](https://github.com/nasa/NASA-3D-Resources/tree/master/3D%20Models/Astronaut)), used in the 3D
@@ -136,7 +144,8 @@ Thresholds are prototype values and are not clinically validated. Each indicator
   injuries), Risk of Decompression Sickness, and behavioural conditions (Risks of Human Spaceflight).
 - NASA Human Research Program — Risks of Human Spaceflight on cardiovascular adaptations, spaceflight associated
   neuro-ocular syndrome, bone loss and muscle loss (background for the body region explanations in
-  [`src/domain/regionInfo.ts`](src/domain/regionInfo.ts)).
+  [`src/domain/regionInfo.ts`](src/domain/regionInfo.ts)) and for why each lab value matters in spaceflight (fluid
+  shifts, renal stone formation, muscle and nutrition; [`src/domain/labs.ts`](src/domain/labs.ts)).
 - Heus R., Daanen H.A.M., Havenith G., "Physiological criteria for functioning of hands in the cold: a review",
   Applied Ergonomics 26(1), 1995.
 - Anderson A. et al., in-suit sensor systems for characterising human–spacesuit interaction, International Conference
