@@ -5,7 +5,19 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { CREW, type AstronautId } from '../domain/crew';
 import { forecast } from '../domain/forecast';
 import { countdown, earthMessages, replyAt } from '../domain/earth';
-import { forecastBeat, forecastKey, messageBeat, personBeats, personView, replyBeat, solarBeat, viewKey, type Beat, type PersonView } from '../domain/narrator';
+import {
+  forecastBeat,
+  forecastKey,
+  messageBeat,
+  personBeats,
+  personView,
+  reactionBeat,
+  replyBeat,
+  solarBeat,
+  viewKey,
+  type Beat,
+  type PersonView,
+} from '../domain/narrator';
 import { crewSummary } from '../domain/sim';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { useRoom, useStore } from './useRoom';
@@ -36,6 +48,8 @@ export function useNarrator(show: boolean) {
     let solar: boolean | null = null;
     let sentSeen: Set<string> | null = null;
     let repliesSeen: Set<string> | null = null;
+    const reactionsSeen = new Map<AstronautId, number>();
+    let reactionsReady = false;
     let next = 1;
 
     const tick = () => {
@@ -92,6 +106,14 @@ export function useNarrator(show: boolean) {
           }
         }
       }
+
+      for (const a of CREW) {
+        const r = state.reactions?.[a.id];
+        if (!r || reactionsSeen.get(a.id) === r.at) continue;
+        reactionsSeen.set(a.id, r.at);
+        if (reactionsReady) out.push(reactionBeat(a.id, r));
+      }
+      reactionsReady = true;
 
       const sep = !!radiationAdvisory(state, w, now);
       if (solar === null) solar = sep;

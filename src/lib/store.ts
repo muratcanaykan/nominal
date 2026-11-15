@@ -5,6 +5,7 @@ import type { AstronautId, ProfileId } from '../domain/crew';
 import type { LocationId } from '../domain/locations';
 import { ackKey, applyPatch, findUndefined, newRoomState, type Patch, type RoomState } from '../domain/room';
 import { composeMessage, type MessageKind } from '../domain/earth';
+import { scoreReaction } from '../domain/reaction';
 import { scenarioPatch, type ScenarioId } from '../domain/scenarios';
 import type { Level, VitalId } from '../domain/vitals';
 
@@ -147,6 +148,11 @@ export class RoomStore {
       patch[`messages/${now}-${by}`] = composeMessage(after, by, id, 'status', now);
     }
     return this.update(patch);
+  }
+
+  /** Saves a finished alertness check (reaction test). */
+  submitReaction(id: AstronautId, times: number[], falseStarts: number) {
+    return this.update({ [`reactions/${id}`]: scoreReaction(id, times, falseStarts, this.now()) });
   }
 
   /** Sends a message about a crew member to the flight surgeons on Earth. */

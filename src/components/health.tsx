@@ -3,6 +3,7 @@
 import { PAIN_SITES } from '../domain/body';
 import { CREW_BY_ID, type AstronautId } from '../domain/crew';
 import type { RoomState } from '../domain/room';
+import { RATING_LABELS } from '../domain/reaction';
 import { SCENARIOS } from '../domain/scenarios';
 import { snapshot, type Reading, type Snapshot } from '../domain/sim';
 import { LEVEL_NAMES, VITAL_IDS, VITALS, type VitalId } from '../domain/vitals';
@@ -119,6 +120,8 @@ export function timeline(state: RoomState | undefined, id: AstronautId): Timelin
     const q = def.confirm?.kind === 'symptom' ? def.confirm.question : def.label;
     items.push({ at: check.at, text: `${q} ${check.yes ? 'Yes' : 'No'}`, level: check.yes ? 'lvl-2' : undefined });
   }
+  const rt = state.reactions?.[id];
+  if (rt) items.push({ at: rt.at, text: `Alertness check: ${rt.medianMs} ms median, ${RATING_LABELS[rt.rating].toLowerCase()}`, level: rt.rating === 'alert' ? undefined : rt.rating === 'slower' ? 'lvl-1' : 'lvl-2' });
   const pain = state.reports?.[id]?.jointPain;
   if (pain) items.push({ at: pain.at, text: `Joint pain reported: ${PAIN_SITES[pain.site].label.toLowerCase()}, ${pain.value}/10`, level: 'lvl-1' });
   return items.sort((a, b) => b.at - a.at);

@@ -16,6 +16,7 @@ import { BodyMap } from './BodyMap';
 import { RadiationLine } from './Radiation';
 import { EarthPanel } from './EarthLink';
 import { LabPanel } from './LabPanel';
+import { RATING_LABELS, reactionSummary } from '../domain/reaction';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 
 export const DEMO_PIN = '2468';
@@ -124,6 +125,15 @@ function CrewCard({
         <VitalTiles s={s} state={state} now={now} />
       </div>
       <RadiationLine id={a.id} state={state} now={now} />
+      {(() => {
+        const r = state?.reactions?.[a.id];
+        if (!r) return null;
+        return (
+          <p className={`rt-line ${r.rating === 'alert' ? 'lvl-0' : r.rating === 'slower' ? 'lvl-1' : 'lvl-2'}`}>
+            <strong>Alertness · {RATING_LABELS[r.rating]}</strong> {reactionSummary(r, a.id)} · {formatAgo(now - r.at)} ago
+          </p>
+        );
+      })()}
       <p className="cmo-ref">
         Glucose baseline from real data: anonymised commercial spaceflight crew member {a.osdrSubject}, pre-flight fasting mean{' '}
         {Math.round(subject.preflightMean)} mg/dL, {subject.dayAfterLanding} mg/dL the day after landing (NASA OSDR{' '}

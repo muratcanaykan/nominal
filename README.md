@@ -24,6 +24,11 @@ that helps astronauts assess their own health and guides them on what to do.
 - **Tablet** — each astronaut's own detailed readings, short trends and history. The commander's tablet adds each crew
   member's duty status without any health values. The crew medical officer's tablet adds every crew member's details,
   trends and alert history.
+- **Alertness check** — a 30-second reaction test on each tablet, modelled on the psychomotor vigilance test used in
+  spaceflight to spot fatigue: a circle appears after a random wait and the crew member taps as fast as possible. The
+  result (median reaction time, lapses over 500 ms, early taps) is compared with the crew member's own usual time,
+  joined with last night's sleep, and shared with the medical officer. Six targets instead of the full test; the
+  personal baselines and rating limits are prototype values.
 - **Lab results** — a blood panel on each tablet and in the medical officer's view: ten values (sodium, potassium,
   chloride, bicarbonate, urea nitrogen, creatinine, calcium, albumin, alkaline phosphatase, ALT) before launch and the
   day after landing, with the lab range, the change and a small chart across all seven tests. The values are real
@@ -154,6 +159,13 @@ Thresholds are prototype values and are not clinically validated. Each indicator
 - Law J. et al., carbon dioxide levels and reported headaches on the International Space Station, Journal of
   Occupational and Environmental Medicine, 2014.
 - NASA mishap investigation report on water entering a spacesuit helmet during a 2013 spacewalk.
+
+### Alertness check
+
+- Basner M., Dinges D.F., "Maximizing sensitivity of the psychomotor vigilance test (PVT) to sleep loss", Sleep 34(5),
+  2011 — lapse (over 500 ms) and false start (under 100 ms) rules.
+- Basner M. et al., "Development and Validation of the Cognition Test Battery for Spaceflight", Aerospace Medicine and
+  Human Performance 86(11), 2015 — the reaction-time test in the spaceflight cognition battery.
 
 ### Radiation dose
 

@@ -5,6 +5,7 @@ import { CREW_BY_ID, PROFILES, type AstronautId } from './crew';
 import { forecastText, type Forecast } from './forecast';
 import { isSuited, locationLabel, locationOf, type LocationId } from './locations';
 import { MESSAGE_LABELS, replyText, type EarthMessage } from './earth';
+import { RATING_LABELS, REACTION_BASELINE_MS, type ReactionResult } from './reaction';
 import { checklistProgress } from './response';
 import type { RoomState } from './room';
 import type { CrewAlert, Snapshot } from './sim';
@@ -216,6 +217,16 @@ export function messageBeat(m: EarthMessage, profileDelayText: string, replyIn: 
     title: `${MESSAGE_LABELS[m.kind]} to Earth about ${CREW_BY_ID[m.about].name}`,
     text: `The signal takes ${profileDelayText} each way, so the flight surgeon's reply is due in about ${replyIn}. The crew keeps acting meanwhile.`,
     told: ['earth'],
+  };
+}
+
+export function reactionBeat(id: AstronautId, r: ReactionResult): Beat {
+  return {
+    who: id,
+    tone: r.rating === 'alert' ? 0 : r.rating === 'slower' ? 1 : 2,
+    title: `${CREW_BY_ID[id].name} took an alertness check · ${RATING_LABELS[r.rating]}`,
+    text: `${r.medianMs} ms median reaction time, ${r.lapses} ${r.lapses === 1 ? 'lapse' : 'lapses'}, against a usual ${REACTION_BASELINE_MS[id]} ms. The result stays on the own tablet and goes to the medical officer.`,
+    told: ['cmo'],
   };
 }
 

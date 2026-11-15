@@ -12,6 +12,7 @@ import { scenarioPatch } from './scenarios';
 import { checklistProgress, responseChecklist } from './response';
 import { ANSWER_MS, composeMessage, earthMessages, replyAt, replyText, stageOf } from './earth';
 import { labRows, LABS } from './labs';
+import { median, reactionAdvice, scoreReaction } from './reaction';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
@@ -453,5 +454,25 @@ describe('lab panel (NASA OSDR OSD-575)', () => {
     expect(potassium.flag).toBe('low');
     const sodium = labRows('C001').find((r) => r.def.key === 'SODIUM')!;
     expect(sodium.before).toBeCloseTo((141 + 139 + 142) / 3, 5);
+  });
+});
+
+describe('alertness check (reaction test)', () => {
+  it('rates against the personal baseline with standard lapse rules', () => {
+    // Arai's usual median is 292 ms.
+    expect(scoreReaction('04', [280, 300, 290, 310, 285, 295], 0, 0).rating).toBe('alert');
+    expect(scoreReaction('04', [330, 350, 345, 360, 340, 355], 0, 0).rating).toBe('slower');
+    const tired = scoreReaction('04', [300, 620, 310, 700, 320, 330], 1, 0);
+    expect(tired.lapses).toBe(2);
+    expect(tired.rating).toBe('tired');
+    expect(median([5, 1, 3, 2])).toBe(3);
+    expect(reactionAdvice(tired, 5.2)).toContain('You slept 5.2 h');
+  });
+
+  it('saves the result for the medical officer', async () => {
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => 5000));
+    await store.submitReaction('02', [300, 290, 310, 305, 295, 280], 0);
+    expect(store.getSnapshot().error).toBeUndefined();
+    expect(store.current?.reactions?.['02']?.medianMs).toBe(298);
   });
 });

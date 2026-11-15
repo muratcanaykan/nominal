@@ -17,6 +17,7 @@ import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { RadiationCard } from './Radiation';
 import { LabPanel } from './LabPanel';
+import { ReactionTest } from './ReactionTest';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 import { MedicalOverview, PinGate, readUnlocked } from './MedicalView';
 
@@ -117,6 +118,8 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
       <BodyMap s={s} state={state} />
 
       <VitalTiles s={s} state={state} now={now} />
+
+      <ReactionTest id={id} state={state} now={now} sleepHours={s.connected ? s.readings.sleep.value : null} />
 
       <div className="tablet__cols">
         <section className="tablet__section">

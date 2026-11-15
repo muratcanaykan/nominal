@@ -3,6 +3,7 @@
 
 import type { PainSite } from './body';
 import type { EarthMessage } from './earth';
+import type { ReactionResult } from './reaction';
 import type { AstronautId, ProfileId } from './crew';
 import type { LocationId } from './locations';
 import type { Level, VitalId } from './vitals';
@@ -36,6 +37,8 @@ export interface RoomState {
   symptomChecks?: Partial<Record<AstronautId, Partial<Record<VitalId, { yes: boolean; at: number }>>>>;
   /** Symptoms reported from the watch. */
   reports?: Partial<Record<AstronautId, { jointPain?: { value: number; site: PainSite; at: number } }>>;
+  /** Latest alertness check (reaction test) per crew member. */
+  reactions?: Partial<Record<AstronautId, ReactionResult>>;
   /** Messages to flight surgeons on Earth (replies are computed from time). */
   messages?: Record<string, EarthMessage>;
   /** Demo trigger for a solar particle event (real events come from NASA DONKI). */
