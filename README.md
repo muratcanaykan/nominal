@@ -9,7 +9,7 @@
 ## Demo
 
 - Live app: https://nominal.rteuceng.com — press **Take the 1-minute tour** for a guided walkthrough
-- Demo video / slides: _coming soon_
+- Demo slides (7, English): [docs/Nominal-SPARK-HUB-slides.pdf](docs/Nominal-SPARK-HUB-slides.pdf)
 
 ## The challenge
 
