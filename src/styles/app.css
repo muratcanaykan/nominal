@@ -736,6 +736,8 @@
 
 .cmo-card {
   display: grid;
+  /* The column may shrink below its content (wide tables scroll or adapt instead of spilling out). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   align-content: start;
   padding: 16px 18px;
@@ -1290,6 +1292,7 @@
 
 .tablet__body {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
   min-width: 0;
 }
@@ -4337,6 +4340,8 @@ html {
 /* ---------- Lab results (OSDR blood panel) ---------- */
 
 .labs {
+  container-type: inline-size;
+  min-width: 0;
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
@@ -4487,14 +4492,25 @@ html {
   fill: var(--text);
 }
 
-@media (max-width: 720px) {
-  .labs__range-col,
+/* The table follows the width of its own panel (a crew card in a two-column grid is narrow). */
+.labs__scroll {
+  overflow-x: auto;
+}
+
+@container (max-width: 700px) {
+  .labs__range-col {
+    display: none;
+  }
+}
+
+@container (max-width: 600px) {
   .labs__chart-col {
     display: none;
   }
 
+  .labs__table th,
   .labs__table td {
-    white-space: normal;
+    padding: 8px 8px;
   }
 }
 
@@ -4637,4 +4653,82 @@ html {
 .rt-line strong {
   margin-right: 6px;
   color: var(--text);
+}
+
+.earth-msg__when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  margin: 0 0 6px;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: var(--dim);
+}
+
+.earth-msg__archive {
+  margin-left: auto;
+  min-height: 32px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  cursor: pointer;
+}
+
+.earth-msg__archive:hover {
+  color: var(--text);
+  border-color: var(--dim);
+}
+
+.earth__archive-all {
+  justify-self: start;
+}
+
+.earth__archive {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+
+.earth__archive summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--dim);
+  cursor: pointer;
+  list-style: none;
+}
+
+.earth__archive summary::-webkit-details-marker {
+  display: none;
+}
+
+.earth__archive summary::before {
+  content: '▸';
+  color: var(--accent);
+  transition: transform 0.2s;
+}
+
+.earth__archive[open] summary::before {
+  transform: rotate(90deg);
+}
+
+.earth__archive .earth__list {
+  margin-top: 8px;
+}
+
+.earth-msg.is-archived {
+  background: transparent;
+}
+
+.earth-msg.is-archived .earth-msg__track,
+.earth-msg.is-archived.is-replied .earth-msg__stage {
+  display: none;
 }

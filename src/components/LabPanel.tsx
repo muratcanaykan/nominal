@@ -51,55 +51,57 @@ export function LabPanel({ subject, open }: { subject: OsdrSubject; open?: boole
         Real blood tests of anonymised commercial spaceflight crew member {subject} (NASA OSDR OSD-575), before launch and
         after landing, mapped to this simulated crew member. Blood tests are taken now and then, not live.
       </p>
-      <table className="labs__table">
-        <thead>
-          <tr>
-            <th scope="col">Test</th>
-            <th scope="col">Before flight</th>
-            <th scope="col">Day after landing</th>
-            <th scope="col" className="labs__range-col">
-              Lab range
-            </th>
-            <th scope="col" className="labs__chart-col">
-              <span className="sr-only">Over time</span>
-              <span aria-hidden="true">Before · after</span>
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r) => {
-            const d = r.def.decimals;
-            const change = r.after === null ? null : ((r.after - r.before) / r.before) * 100;
-            return (
-              <tr key={r.def.key} className={r.flag ? 'is-flagged' : ''}>
-                <th scope="row">
-                  <strong>{r.def.label}</strong>
-                  <span>{r.def.why}</span>
-                </th>
-                <td>
-                  {fmt(r.before, d)} <small>{r.units}</small>
-                </td>
-                <td>
-                  {r.after === null ? '–' : fmt(r.after, d)}
-                  {change !== null && Math.abs(change) >= 1 && (
-                    <em className="labs__change">
-                      {change > 0 ? '↑' : '↓'}
-                      {Math.abs(Math.round(change))} %
-                    </em>
-                  )}
-                  {r.flag && <b className="labs__flag">{r.flag === 'high' ? 'High' : 'Low'}</b>}
-                </td>
-                <td className="labs__range-col">
-                  {r.range[0] ?? '–'}–{r.range[1] ?? ''} <small>{r.units}</small>
-                </td>
-                <td className="labs__chart-col">
-                  <LabChart row={r} />
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="labs__scroll">
+        <table className="labs__table">
+          <thead>
+            <tr>
+              <th scope="col">Test</th>
+              <th scope="col">Before flight</th>
+              <th scope="col">Day after landing</th>
+              <th scope="col" className="labs__range-col">
+                Lab range
+              </th>
+              <th scope="col" className="labs__chart-col">
+                <span className="sr-only">Over time</span>
+                <span aria-hidden="true">Before · after</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r) => {
+              const d = r.def.decimals;
+              const change = r.after === null ? null : ((r.after - r.before) / r.before) * 100;
+              return (
+                <tr key={r.def.key} className={r.flag ? 'is-flagged' : ''}>
+                  <th scope="row">
+                    <strong>{r.def.label}</strong>
+                    <span>{r.def.why}</span>
+                  </th>
+                  <td>
+                    {fmt(r.before, d)} <small>{r.units}</small>
+                  </td>
+                  <td>
+                    {r.after === null ? '–' : fmt(r.after, d)}
+                    {change !== null && Math.abs(change) >= 1 && (
+                      <em className="labs__change">
+                        {change > 0 ? '↑' : '↓'}
+                        {Math.abs(Math.round(change))} %
+                      </em>
+                    )}
+                    {r.flag && <b className="labs__flag">{r.flag === 'high' ? 'High' : 'Low'}</b>}
+                  </td>
+                  <td className="labs__range-col">
+                    {r.range[0] ?? '–'}–{r.range[1] ?? ''} <small>{r.units}</small>
+                  </td>
+                  <td className="labs__chart-col">
+                    <LabChart row={r} />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </details>
   );
 }
