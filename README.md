@@ -47,6 +47,12 @@ that helps astronauts assess their own health and guides them on what to do.
   level, the watch, the tablet and the medical officer see how soon it will get there (for example "Blood oxygen
   falling · Warning in about 1 min"), so the crew can act before the alert. Normal sensor noise does not trigger it, and neither does a sudden jump
   that has already stopped: the change has to be gradual and still going.
+- **Messages to Earth** — the medical officer sends flight surgeons a status update, a request for guidance or an all
+  clear about a crew member (ticking the Earth step of a response checklist sends an update too). Each message shows
+  its journey: out across the signal delay, the flight surgeon answering, the reply coming back. From lunar orbit that
+  is seconds; from the Mars base about 24 minutes, which is why the crew acts first. The cabin screen shows only that an
+  update was sent and when the reply is due. Replies are simulated, and the flight surgeon's answer time is shortened
+  to 15 seconds for the demo.
 - **Radiation dose** — every crew member's tablet shows a simulated personal dosimeter: the dose rate now, what
   raises it (a spacewalk has less shielding; a solar particle event from NASA DONKI or the demo raises it sharply) and
   the dose received this mission against the career limit. The medical officer sees one line per crew member. Base
@@ -69,8 +75,6 @@ that helps astronauts assess their own health and guides them on what to do.
 - **Suit voice link** — the watch microphone inside the suit carries the astronaut's voice to the cabin screen as
   live speech and text. Saying "help" or "mayday" starts a help call hands-free, which matters in pressurised gloves
   that make touching a watch hard.
-- **Messages to Earth** — reports to flight surgeons whose replies arrive after the real round-trip delay (up to 48 minutes
-  from Mars), to show why the crew must act on its own.
 - **Real devices and network** — the watches, suit sensors and tablets on the vehicle's own network instead of the web
   demo's cloud sync, and personal baselines learned from each crew member's pre-flight data.
 

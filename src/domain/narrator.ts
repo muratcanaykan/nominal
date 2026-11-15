@@ -4,6 +4,7 @@
 import { CREW_BY_ID, PROFILES, type AstronautId } from './crew';
 import { forecastText, type Forecast } from './forecast';
 import { isSuited, locationLabel, locationOf, type LocationId } from './locations';
+import { MESSAGE_LABELS, replyText, type EarthMessage } from './earth';
 import { checklistProgress } from './response';
 import type { RoomState } from './room';
 import type { CrewAlert, Snapshot } from './sim';
@@ -207,3 +208,23 @@ export function solarBeat(on: boolean): Beat {
 }
 
 export const forecastKey = (f: Forecast) => `${f.vital}-${f.level}`;
+
+export function messageBeat(m: EarthMessage, profileDelayText: string, replyIn: string): Beat {
+  return {
+    who: m.from,
+    tone: 'info',
+    title: `${MESSAGE_LABELS[m.kind]} to Earth about ${CREW_BY_ID[m.about].name}`,
+    text: `The signal takes ${profileDelayText} each way, so the flight surgeon's reply is due in about ${replyIn}. The crew keeps acting meanwhile.`,
+    told: ['earth'],
+  };
+}
+
+export function replyBeat(m: EarthMessage): Beat {
+  return {
+    who: null,
+    tone: 'info',
+    title: `Reply from flight surgeons about ${CREW_BY_ID[m.about].name}`,
+    text: replyText(m),
+    told: ['cmo'],
+  };
+}

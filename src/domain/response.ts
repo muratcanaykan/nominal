@@ -79,9 +79,9 @@ export function responseChecklist(alert: CrewAlert, state: RoomState | null | un
   steps.push({ id: 'act', text: FIRST_ACTION[key] });
   if (eva && !kit.includes('airlock')) steps.push({ id: 'airlock', text: 'Prepare the airlock for early return' });
   steps.push({ id: 'care', text: CREW_BY_ID[id].cmo ? 'Commander coordinates care' : 'Medical officer takes over care' });
-  const replyMs = 2 * PROFILES[state?.profile ?? 'lunar'].earthDelayMs;
-  const reply = replyMs < 60_000 ? `${Math.ceil(replyMs / 1000)} s` : `${Math.round(replyMs / 60_000)} min`;
-  steps.push({ id: 'earth', text: `Send flight surgeons an update (reply in about ${reply})` });
+  const delayMs = PROFILES[state?.profile ?? 'lunar'].earthDelayMs;
+  const delay = delayMs < 60_000 ? `${(delayMs / 1000).toFixed(1)} s` : `${Math.round(delayMs / 60_000)} min`;
+  steps.push({ id: 'earth', text: `Send flight surgeons an update (signal ${delay} each way)` });
   return steps;
 }
 

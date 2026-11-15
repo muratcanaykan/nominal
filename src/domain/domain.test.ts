@@ -10,6 +10,7 @@ import { dose } from './radiation';
 import { personBeats, personView } from './narrator';
 import { scenarioPatch } from './scenarios';
 import { checklistProgress, responseChecklist } from './response';
+import { ANSWER_MS, composeMessage, earthMessages, replyAt, replyText, stageOf } from './earth';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
 
 describe('levelFor', () => {
@@ -392,5 +393,30 @@ describe('response checklist', () => {
     expect(checklistProgress(alert, state)).toEqual({ done: 2, total: 5 });
     await store.resolve('01');
     expect(store.current!.checklists?.['01']).toBeUndefined();
+  });
+});
+
+describe('messages to Earth', () => {
+  it('replies only after the round trip and the answer time', () => {
+    const lunar = composeMessage(newRoomState(0), '03', '02', 'guidance', 1000);
+    expect(stageOf(lunar, 1000 + 1000)).toBe('outbound');
+    expect(stageOf(lunar, 1000 + 1300 + ANSWER_MS - 1)).toBe('answering');
+    expect(stageOf(lunar, replyAt(lunar))).toBe('replied');
+    const mars = composeMessage(newRoomState(0, 'mars'), '03', '02', 'guidance', 1000);
+    expect(replyAt(mars) - 1000).toBe(24 * 60_000 + ANSWER_MS);
+    expect(replyText(mars)).toContain('Okafor');
+  });
+
+  it('sends a status update when the Earth step of the checklist is ticked', async () => {
+    let t = 10_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => t));
+    await store.runScenario('02', 'critical');
+    t = 30_000;
+    await store.checkStep('02', 'reach', '01', true);
+    await store.checkStep('02', 'earth', '01', true);
+    const msgs = earthMessages(store.current);
+    expect(msgs).toHaveLength(1);
+    expect(msgs[0].kind).toBe('status');
+    expect(msgs[0].text).toContain('Response checklist 2/6 done');
   });
 });

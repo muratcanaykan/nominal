@@ -5,7 +5,9 @@ import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, PROFILES, type AstronautId } f
 import { crewSummary, missionClock, type CrewAlert } from '../domain/sim';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather, type Advisory } from '../data/spaceWeather';
 import { isEva, locationLabel } from '../domain/locations';
+import { countdown, latestAbout, replyAt } from '../domain/earth';
 import { responseChecklist } from '../domain/response';
+import { stageText } from './EarthLink';
 import { useRoom, useStore } from '../lib/useRoom';
 import { formatAgo, formatDelay } from './bits';
 import { CabinView3D } from './CabinView3D';
@@ -42,7 +44,13 @@ function Checklist({ alert, now, viewer }: { alert: CrewAlert; now: number; view
                 <span className="check__box" aria-hidden="true">
                   {t ? '✓' : i + 1}
                 </span>
-                <span className="check__text">{step.text}</span>
+                <span className="check__text">
+                  {step.text}
+                  {step.id === 'earth' && t && (() => {
+                    const m = latestAbout(state, alert.astronautId, t.at);
+                    return m ? <small className="check__sub">{stageText(m, now)}</small> : null;
+                  })()}
+                </span>
                 {t && (
                   <span className="check__by">
                     {CREW_BY_ID[t.by].callsign} · {formatAgo(now - t.at)}
@@ -91,6 +99,12 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
           <dd>
             {cmo ? `${cmo.name} (medical officer)` : 'Medical officer'} ·{' '}
             {remaining > 0 ? `Earth in ${formatDelay(remaining)}` : 'Flight surgeons on Earth'}
+            {(() => {
+              // Only where the conversation is; its content stays on the medical officer's tablet.
+              const m = latestAbout(state, a.id, since);
+              if (!m) return null;
+              return now >= replyAt(m) ? " · reply on the medical officer's tablet" : ` · update sent, reply in ${countdown(replyAt(m) - now)}`;
+            })()}
           </dd>
         </div>
       </dl>

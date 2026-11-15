@@ -4,10 +4,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CREW, type AstronautId } from '../domain/crew';
 import { forecast } from '../domain/forecast';
-import { forecastBeat, forecastKey, personBeats, personView, solarBeat, viewKey, type Beat, type PersonView } from '../domain/narrator';
+import { countdown, earthMessages, replyAt } from '../domain/earth';
+import { forecastBeat, forecastKey, messageBeat, personBeats, personView, replyBeat, solarBeat, viewKey, type Beat, type PersonView } from '../domain/narrator';
 import { crewSummary } from '../domain/sim';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { useRoom, useStore } from './useRoom';
+import { formatDelay } from '../components/bits';
 
 export interface NarratedBeat extends Beat {
   key: number;
@@ -32,6 +34,8 @@ export function useNarrator(show: boolean) {
     const pending = new Map<AstronautId, { key: string; since: number }>();
     const seen = new Map<AstronautId, Set<string>>();
     let solar: boolean | null = null;
+    let sentSeen: Set<string> | null = null;
+    let repliesSeen: Set<string> | null = null;
     let next = 1;
 
     const tick = () => {
@@ -72,6 +76,23 @@ export function useNarrator(show: boolean) {
           }
         }
       }
+      const msgs = earthMessages(state);
+      if (!sentSeen || !repliesSeen) {
+        sentSeen = new Set(msgs.map((m) => m.id));
+        repliesSeen = new Set(msgs.filter((m) => now >= replyAt(m)).map((m) => m.id));
+      } else {
+        for (const m of msgs) {
+          if (!sentSeen.has(m.id)) {
+            sentSeen.add(m.id);
+            out.push(messageBeat(m, formatDelay(m.delayMs), countdown(replyAt(m) - m.at)));
+          }
+          if (now >= replyAt(m) && !repliesSeen.has(m.id)) {
+            repliesSeen.add(m.id);
+            out.push(replyBeat(m));
+          }
+        }
+      }
+
       const sep = !!radiationAdvisory(state, w, now);
       if (solar === null) solar = sep;
       else if (sep !== solar) {

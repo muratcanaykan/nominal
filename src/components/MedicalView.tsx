@@ -14,6 +14,7 @@ import { formatAgo, formatDelay, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
 import { BodyMap } from './BodyMap';
 import { RadiationLine } from './Radiation';
+import { EarthPanel } from './EarthLink';
 import { readingNote, readingValue, Timeline, timeline, VitalTiles } from './health';
 
 export const DEMO_PIN = '2468';
@@ -250,6 +251,8 @@ export function MedicalOverview({
           </ul>
         )}
       </section>
+
+      <EarthPanel state={state} now={now} from={CREW.find((c) => c.cmo)?.id ?? CREW[0].id} />
 
       <section className="cmo-grid" aria-label="Crew details">
         {CREW.map((a) => (

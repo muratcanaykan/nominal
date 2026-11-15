@@ -2,6 +2,7 @@
 // only user actions and scenario events live here. Indicator values are computed from time (see sim.ts).
 
 import type { PainSite } from './body';
+import type { EarthMessage } from './earth';
 import type { AstronautId, ProfileId } from './crew';
 import type { LocationId } from './locations';
 import type { Level, VitalId } from './vitals';
@@ -35,6 +36,8 @@ export interface RoomState {
   symptomChecks?: Partial<Record<AstronautId, Partial<Record<VitalId, { yes: boolean; at: number }>>>>;
   /** Symptoms reported from the watch. */
   reports?: Partial<Record<AstronautId, { jointPain?: { value: number; site: PainSite; at: number } }>>;
+  /** Messages to flight surgeons on Earth (replies are computed from time). */
+  messages?: Record<string, EarthMessage>;
   /** Demo trigger for a solar particle event (real events come from NASA DONKI). */
   spaceWeather?: { sepAt?: number };
 }

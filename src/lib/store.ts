@@ -4,6 +4,7 @@ import type { PainSite } from '../domain/body';
 import type { AstronautId, ProfileId } from '../domain/crew';
 import type { LocationId } from '../domain/locations';
 import { ackKey, applyPatch, newRoomState, type Patch, type RoomState } from '../domain/room';
+import { composeMessage, type MessageKind } from '../domain/earth';
 import { scenarioPatch, type ScenarioId } from '../domain/scenarios';
 import type { Level, VitalId } from '../domain/vitals';
 
@@ -132,11 +133,26 @@ export class RoomStore {
     return this.update({ [`claims/${id}`]: { by, at: this.now() } });
   }
 
-  /** Ticks or unticks a response step on the cabin screen; the first tick also marks `by` as responding. */
+  /**
+   * Ticks or unticks a response step on the cabin screen; the first tick also marks `by` as responding. Ticking the
+   * "update Earth" step sends a status update to the flight surgeons.
+   */
   checkStep(id: AstronautId, step: string, by: AstronautId, done: boolean) {
-    const patch: Patch = { [`checklists/${id}/${step}`]: done ? { by, at: this.now() } : null };
-    if (done && !this.state?.claims?.[id]) patch[`claims/${id}`] = { by, at: this.now() };
+    const now = this.now();
+    const patch: Patch = { [`checklists/${id}/${step}`]: done ? { by, at: now } : null };
+    if (done && !this.state?.claims?.[id]) patch[`claims/${id}`] = { by, at: now };
+    if (done && step === 'earth') {
+      // The update includes this tick in its checklist count.
+      const after = applyPatch(this.state ?? newRoomState(now), patch);
+      patch[`messages/${now}-${by}`] = composeMessage(after, by, id, 'status', now);
+    }
     return this.update(patch);
+  }
+
+  /** Sends a message about a crew member to the flight surgeons on Earth. */
+  sendEarth(from: AstronautId, about: AstronautId, kind: MessageKind) {
+    const now = this.now();
+    return this.update({ [`messages/${now}-${from}`]: composeMessage(this.state ?? undefined, from, about, kind, now) });
   }
 
   /** Closes a crew alert: clears the help request, the claim and the astronaut's scenario. */

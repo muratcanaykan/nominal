@@ -4188,3 +4188,148 @@ html {
   color: var(--l3);
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------- Messages to Earth (medical officer) ---------- */
+
+.earth {
+  display: grid;
+  gap: 12px;
+}
+
+.earth__compose {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 14px;
+}
+
+.earth__compose label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--dim);
+}
+
+.earth__compose select {
+  min-height: 44px;
+  padding: 0 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.earth__kinds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.earth__list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.earth-msg {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+
+.earth-msg__out header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.earth-msg__out header span {
+  color: var(--dim);
+}
+
+.earth-msg__out p,
+.earth-msg__reply p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.earth-msg__track {
+  position: relative;
+  height: 6px;
+  background: var(--panel-2);
+  border-radius: 99px;
+}
+
+.earth-msg__track span {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, var(--accent), color-mix(in srgb, var(--accent) 50%, var(--l0)));
+  border-radius: 99px;
+  transform-origin: left;
+  transition: transform 0.5s linear;
+}
+
+.earth-msg__track i {
+  position: absolute;
+  top: -3px;
+  width: 2px;
+  height: 12px;
+  background: var(--dim);
+  border-radius: 2px;
+}
+
+.earth-msg__stage {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.earth-msg.is-replied .earth-msg__stage {
+  color: var(--l0);
+}
+
+.earth-msg__reply {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--l0) 9%, transparent);
+  border-left: 3px solid var(--l0);
+  border-radius: 8px;
+}
+
+.earth-msg__reply strong {
+  font-size: 13px;
+}
+
+.earth-msg__reply small {
+  display: block;
+  margin-top: 4px;
+  font-size: 11px;
+  color: var(--dim);
+}
+
+.check__sub {
+  display: inline-block;
+  width: 100%;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.check__item.is-done .check__sub {
+  text-decoration: none;
+  color: var(--accent);
+}
