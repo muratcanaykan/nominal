@@ -72,6 +72,8 @@ that helps astronauts assess their own health and guides them on what to do.
   Crew in the airlock or outside wear the spacesuit; inside the vehicle they wear a coverall over a smart shirt, with
   the watch on the left wrist, whose screen shows the wearer's status colour. The coverall models are split into body
   regions by part name, so clicking and region alerts work the same way ([`src/three/crewGeometry.ts`](src/three/crewGeometry.ts)).
+  The coverall crew models were made by our team with Claude and built with trimesh
+  ([`public/models/crew-female.glb`](public/models/crew-female.glb), [`public/models/crew-male.glb`](public/models/crew-male.glb)).
 - **Early warning** — when a reading drifts steadily away from the crew member's own baseline toward the next alert
   level, the watch, the tablet and the medical officer see how soon it will get there (for example "Blood oxygen
   falling · Warning in about 1 min"), so the crew can act before the alert. Normal sensor noise does not trigger it, and neither does a sudden jump
@@ -240,9 +242,22 @@ spacewalk length and the suggestion scoring are prototype assumptions:
 | Build and tests | [Vite](https://vite.dev/), [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react), [Vitest](https://vitest.dev/) | MIT |
 | Language | [TypeScript](https://www.typescriptlang.org/), type definitions from [DefinitelyTyped](https://github.com/DefinitelyTyped/DefinitelyTyped) (`@types/react`, `@types/react-dom`, `@types/three`, `@types/qrcode`) | Apache-2.0, MIT |
 | Preparing the 3D model (one-off) | [glTF Transform](https://gltf-transform.dev/), [draco3dgltf](https://github.com/google/draco) | MIT, Apache-2.0 |
+| Building the coverall crew models (one-off) | [trimesh](https://github.com/mikedh/trimesh) | MIT |
 | Typeface | [Manrope](https://fonts.google.com/specimen/Manrope) via Google Fonts | SIL Open Font License 1.1 |
 
-Hosting: Cloudflare Pages (website) and Firebase (live sync).
+### Services and APIs
+
+- NASA DONKI API — the [CCMC DONKI API](https://ccmc.gsfc.nasa.gov/tools/DONKI/) (`ccmc.gsfc.nasa.gov/DONKI-API`), with
+  [api.nasa.gov](https://api.nasa.gov/) (`api.nasa.gov/DONKI`) as the fallback: solar particle events and other space
+  weather, saved at build time and refreshed live in the browser.
+- NASA OSDR data download (`osdr.nasa.gov/geode-py/ws/studies/OSD-575/download`) — the Inspiration4 metabolic panel
+  file behind the glucose baselines and the lab results, fetched by `npm run data:osdr`.
+- Firebase Realtime Database and Firebase Authentication (anonymous sign-in) — live sync of demo rooms between devices.
+- Google Fonts — the Manrope typeface.
+- Cloudflare Pages — hosting of the website.
+- Browser APIs — WebGL (3D view), Web Audio API (alarm sound), Vibration API (watch alerts on phones), Clipboard API
+  (copy room link), Fullscreen API (3D view), Web Storage (remembered view, sound setting, PIN unlock and a short space weather cache) and
+  IntersectionObserver (3D views pause off screen).
 
 ## Use of AI
 
