@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useAnimate, useReducedMotion } from 'motion/re
 import { useEffect, useRef, useState } from 'react';
 import { PAIN_SITE_IDS, PAIN_SITES, type PainSite } from '../domain/body';
 import { CREW_BY_ID, MISSION_DAY_OFFSET_MS, type AstronautId } from '../domain/crew';
+import { pullOf } from '../domain/tether';
 import { missionClock, MOOD_MISSED_MS, MOOD_REMIND_MS, moodPromptStart, snapshot, type Reading } from '../domain/sim';
 import { HAZARDS, LEVEL_NAMES, routingFor, VITALS, type Level, type VitalId } from '../domain/vitals';
 import { forecast, formatEta } from '../domain/forecast';
@@ -271,6 +272,8 @@ export function WatchFace({ astronautId, now, quiet }: { astronautId: AstronautI
   const alert = snap.connected ? snap.alert : undefined;
   const help = state?.help?.[astronautId];
   const status = snap.status;
+  const pull = pullOf(state, astronautId, now);
+  const pulling = pull?.active ? `${CREW_BY_ID[pull.by].callsign} is pulling you in by the tether · ${Math.ceil(pull.left / 1000)} s` : null;
 
   // Radiation advisory (NASA DONKI or simulated): spacewalk crew get a warning, everyone else a caution.
   const weather = useSpaceWeather();
@@ -452,7 +455,7 @@ export function WatchFace({ astronautId, now, quiet }: { astronautId: AstronautI
                   <ShortLabel text={VITALS[alert.id].short} /> {readingValue(alert)}
                   <small>{VITALS[alert.id].unit}</small>
                 </span>
-                <span className="critical__note">Crew and flight surgeons notified</span>
+                <span className="critical__note">{pulling ?? 'Crew and flight surgeons notified'}</span>
                 <button onClick={() => setInfo(alert.id)}>What to do</button>
               </motion.div>
             )}
@@ -471,7 +474,7 @@ export function WatchFace({ astronautId, now, quiet }: { astronautId: AstronautI
           <AnimatePresence>
             {help && !info && (
               <motion.div className="help-toast" initial={{ y: 30, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 30, opacity: 0 }}>
-                Help requested · crew notified
+                {pulling ?? 'Help requested · crew notified'}
               </motion.div>
             )}
           </AnimatePresence>

@@ -12,6 +12,7 @@ import { LEVEL_NAMES, routingFor, VITAL_IDS, VITALS } from '../domain/vitals';
 import { DONKI_LABELS, formatDay, radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { formatAgo, formatDelay, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
+import { TetherPull } from './TetherPull';
 import { BodyMap } from './BodyMap';
 import { RadiationLine } from './Radiation';
 import { EarthPanel } from './EarthLink';
@@ -104,6 +105,7 @@ function CrewCard({
   alert?: CrewAlert;
 }) {
   const a = CREW_BY_ID[s.astronautId];
+  const cmo = CREW.find((c) => c.cmo);
   const subject = OSDR_GLUCOSE.subjects[a.osdrSubject];
   return (
     <article id={`cmo-card-${a.id}`} className={`cmo-card ${levelClass(s.status)}${focused ? ' is-focus' : ''}`}>
@@ -120,6 +122,7 @@ function CrewCard({
         </span>
       </header>
       {alert && <ResponseLine alert={alert} state={state} />}
+      {cmo && <TetherPull id={a.id} by={cmo.id} now={now} />}
       <div className="cmo-card__body">
         <BodyMap s={s} state={state} compact />
         <VitalTiles s={s} state={state} now={now} />

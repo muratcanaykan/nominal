@@ -40,6 +40,12 @@ that helps astronauts assess their own health and guides them on what to do.
   member, the kit, the first action, the airlock for a spacewalker, the medical officer, an update to Earth) that anyone
   on board ticks off; every screen shows who did which step, and the medical officer sees the progress. The steps are
   prototype examples, not medical procedures ([`src/domain/response.ts`](src/domain/response.ts)).
+- **Tether pull** — spacewalkers stay clipped to a safety tether at the hatch. In a crew emergency on a spacewalk (a
+  critical alert or a help call), the commander or the medical officer can pull the crew member back to the airlock
+  from the cabin screen, the commander's crew status or the medical officer's crew view; a second tap confirms. Nobody
+  else gets the button, and nobody can pull themselves. The crew member's watch, the cabin screen and the 3D view show
+  the pull, and the response checklist records who started it. The powered reel is a prototype concept
+  ([`src/domain/tether.ts`](src/domain/tether.ts)).
 - **Suit sensors and body map** — while a crew member wears the spacesuit (airlock or spacewalk), sensors in the
   helmet, gloves and shoulders report helmet CO₂, water in the helmet, fingertip temperature and suit contact pressure.
   A body map on the tablet and in the medical officer's view colours the region that needs attention. Every region of

@@ -33,6 +33,8 @@ export interface RoomState {
   glucoseChecks?: Partial<Record<AstronautId, { value: number; at: number }>>;
   /** Crew members moved away from their starting location. */
   locations?: Partial<Record<AstronautId, LocationId>>;
+  /** Tether pulls back to the airlock during a spacewalk emergency (see tether.ts). */
+  pulls?: Partial<Record<AstronautId, { by: AstronautId; at: number }>>;
   /** Answers to a sensor's symptom question on the watch (e.g. "Do your fingers feel numb?"). */
   symptomChecks?: Partial<Record<AstronautId, Partial<Record<VitalId, { yes: boolean; at: number }>>>>;
   /** Symptoms reported from the watch. */

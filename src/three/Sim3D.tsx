@@ -11,6 +11,7 @@ import { regionStates } from '../domain/bodymap';
 import { CREW, CREW_BY_ID, MISSION_DAY_OFFSET_MS, PROFILES, type AstronautId, type ProfileId } from '../domain/crew';
 import { locationLabel, locationOf, type LocationId } from '../domain/locations';
 import { crewSummary, missionClock } from '../domain/sim';
+import { pullOf } from '../domain/tether';
 import { LEVEL_NAMES, type Level, type Status } from '../domain/vitals';
 import { radiationAdvisory, useSpaceWeather } from '../data/spaceWeather';
 import { useNow, useRoom } from '../lib/useRoom';
@@ -89,6 +90,8 @@ interface CrewVisual {
   worst: Level;
   regions: Partial<Record<BodyRegion, Level>>;
   help: boolean;
+  /** Being pulled back to the airlock by the tether (see tether.ts). */
+  pulling: boolean;
 }
 
 interface ScreenInfo {
@@ -133,6 +136,7 @@ function useCrewVisuals(mode: SceneMode): { crew: CrewVisual[]; profile: Profile
       worst: mode === 'sim' || worst === 3 ? worst : 0,
       regions,
       help: !!st?.help?.[a.id],
+      pulling: !!pullOf(st, a.id, now)?.active,
     } satisfies CrewVisual;
   });
   const profile = st?.profile ?? 'lunar';
@@ -272,7 +276,8 @@ function Astronaut({
     const next = path.current[0];
     if (next) {
       const d = next.clone().sub(pos.current);
-      const step = Math.min(d.length(), delta * 1.8);
+      // A tether pull reels the crew member in more slowly and steadily than a walk.
+      const step = Math.min(d.length(), delta * (v.pulling ? 0.8 : 1.8));
       if (d.length() < 0.02) path.current.shift();
       else pos.current.add(d.normalize().multiplyScalar(step));
     }
@@ -484,13 +489,14 @@ function Vehicle({ moduleLevels }: { moduleLevels: Partial<Record<LocationId, Le
   );
 }
 
-function Tether({ positions, id }: { positions: Map<AstronautId, THREE.Vector3>; id: AstronautId }) {
+/** Safety tether from the hatch to a spacewalker; taut and lit while the reel pulls them in. */
+function Tether({ positions, id, pulling }: { positions: Map<AstronautId, THREE.Vector3>; id: AstronautId; pulling: boolean }) {
   const ref = useRef<{ geometry: { setPositions: (p: number[]) => void } } | null>(null);
   useFrame((s) => {
     const p = positions.get(id);
     if (!p || !ref.current) return;
     const mid = TETHER_ANCHOR.clone().lerp(p, 0.5);
-    mid.y += 0.6 + Math.sin(s.clock.elapsedTime * 0.7) * 0.15;
+    if (!pulling) mid.y += 0.6 + Math.sin(s.clock.elapsedTime * 0.7) * 0.15;
     const curve = new THREE.QuadraticBezierCurve3(TETHER_ANCHOR, mid, p);
     ref.current.geometry.setPositions(curve.getPoints(24).flatMap((v) => [v.x, v.y, v.z]));
   });
@@ -498,10 +504,10 @@ function Tether({ positions, id }: { positions: Map<AstronautId, THREE.Vector3>;
     <Line
       ref={ref as never}
       points={[TETHER_ANCHOR, TETHER_ANCHOR.clone().add(new THREE.Vector3(0.1, 0.1, 0))]}
-      color="#e2e8f0"
-      lineWidth={1.2}
+      color={pulling ? ACCENT : '#e2e8f0'}
+      lineWidth={pulling ? 2.4 : 1.2}
       transparent
-      opacity={0.6}
+      opacity={pulling ? 0.95 : 0.6}
     />
   );
 }
@@ -1008,9 +1014,9 @@ function Scene({
         />
       ))}
       {crew
-        .filter((v) => v.location === 'eva')
+        .filter((v) => v.location === 'eva' || v.pulling)
         .map((v) => (
-          <Tether key={v.id} positions={positions} id={v.id} />
+          <Tether key={v.id} positions={positions} id={v.id} pulling={v.pulling} />
         ))}
       {solar && <SolarStream />}
       <CabinScreen3D info={screen} focused={focusScreen} onOpen={mode === 'sim' ? onScreenClick : undefined} />

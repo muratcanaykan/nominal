@@ -12,6 +12,8 @@ import { useRoom, useStore } from '../lib/useRoom';
 import { formatAgo, formatDelay } from './bits';
 import { CabinView3D } from './CabinView3D';
 import { CrewMap } from './CrewMap';
+import { TetherPull } from './TetherPull';
+import { pullOf } from '../domain/tether';
 
 /** Shared response checklist: anyone on board ticks steps off; every screen sees who did what. */
 function Checklist({ alert, now, viewer }: { alert: CrewAlert; now: number; viewer: AstronautId }) {
@@ -78,6 +80,7 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
   const delay = PROFILES[state?.profile ?? 'lunar'].earthDelayMs;
   const since = alert.since ?? now;
   const remaining = since + delay - now;
+  const pull = pullOf(state, a.id, now);
 
   return (
     <motion.article
@@ -96,7 +99,10 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
       <dl className="event__facts">
         <div>
           <dt>Location</dt>
-          <dd>{locationLabel(state, a.id)}</dd>
+          <dd>
+            {pull?.active ? 'Spacewalk · coming in on the tether' : locationLabel(state, a.id)}
+            {pull && !pull.active && ` · pulled in by ${CREW_BY_ID[pull.by].callsign}`}
+          </dd>
         </div>
         <div>
           <dt>Notified</dt>
@@ -112,6 +118,7 @@ function EventCard({ alert, now, viewer }: { alert: CrewAlert; now: number; view
           </dd>
         </div>
       </dl>
+      <TetherPull id={a.id} by={viewer} now={now} />
       <Checklist alert={alert} now={now} viewer={viewer} />
       <footer className="event__foot">
         {viewer === alert.astronautId ? (

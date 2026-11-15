@@ -14,6 +14,7 @@ import { useTabletRequest } from '../lib/tabletRequest';
 import { useNow, useRoom } from '../lib/useRoom';
 import { formatAgo, LevelMark, levelClass } from './bits';
 import { Avatar } from './Avatar';
+import { TetherPull } from './TetherPull';
 import { BodyMap } from './BodyMap';
 import { RadiationCard } from './Radiation';
 import { LabPanel } from './LabPanel';
@@ -142,6 +143,7 @@ function MyHealth({ id, state, now, titled }: { id: AstronautId; state: RoomStat
 
 function CrewStatus({ state, now }: { state: RoomState | undefined; now: number }) {
   const summary = crewSummary(state, now);
+  const commander = CREW.find((c) => c.commander);
   return (
     <section className="tablet__group" aria-labelledby="crew-status-title">
       <div className="tablet__group-head">
@@ -168,6 +170,7 @@ function CrewStatus({ state, now }: { state: RoomState | undefined; now: number 
               <span className="duty__hint">
                 {(d === 'critical' || d === 'help') && claim ? `${CREW_BY_ID[claim.by].name} is responding.` : DUTY_HINTS[d]}
               </span>
+              {commander && <TetherPull id={a.id} by={commander.id} now={now} />}
             </li>
           );
         })}

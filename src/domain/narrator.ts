@@ -37,6 +37,9 @@ export interface PersonView {
   /** Crew alert on the cabin screen: who answered it and whether its response checklist is complete. */
   respondedBy?: AstronautId;
   checklistDone: boolean;
+  /** When a tether pull to the airlock started, and who started it. */
+  pulledAt?: number;
+  pulledBy?: AstronautId;
 }
 
 export function personView(state: RoomState | undefined, id: AstronautId, s: Snapshot, now: number, alert?: CrewAlert): PersonView {
@@ -50,11 +53,13 @@ export function personView(state: RoomState | undefined, id: AstronautId, s: Sna
     location: locationOf(state, id),
     respondedBy: alert?.claimedBy,
     checklistDone: !!progress && progress.done === progress.total,
+    pulledAt: state?.pulls?.[id]?.at,
+    pulledBy: state?.pulls?.[id]?.by,
   };
 }
 
 export const viewKey = (v: PersonView) =>
-  `${v.status}|${v.vital ?? ''}|${v.pending}|${v.help}|${v.location}|${v.respondedBy ?? ''}|${v.checklistDone}`;
+  `${v.status}|${v.vital ?? ''}|${v.pending}|${v.help}|${v.location}|${v.respondedBy ?? ''}|${v.checklistDone}|${v.pulledAt ?? ''}`;
 
 const rank = (s: Level | 'nodata') => (s === 'nodata' ? -1 : s);
 
@@ -76,7 +81,17 @@ export function personBeats(prev: PersonView, next: PersonView, id: AstronautId,
   const first = name.split(' ')[0];
   const beats: Beat[] = [];
 
-  if (next.location !== prev.location) {
+  const pulled = !!next.pulledAt && next.pulledAt !== prev.pulledAt;
+  if (pulled && next.pulledBy) {
+    const by = CREW_BY_ID[next.pulledBy];
+    beats.push({
+      who: id,
+      tone: 3,
+      title: `${by.name} is pulling ${name} in by the tether`,
+      text: `Only the commander or the medical officer can start a tether pull, and only in a crew emergency on a spacewalk. The reel brings ${first} to the airlock; the watch and the cabin screen show the pull.`,
+      told: ['watch', 'cabin'],
+    });
+  } else if (next.location !== prev.location) {
     const suitedNow = isSuited(state, id);
     const suitedBefore = prev.location === 'airlock' || prev.location === 'eva';
     beats.push({

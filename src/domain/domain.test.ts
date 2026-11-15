@@ -14,6 +14,8 @@ import { ANSWER_MS, composeMessage, earthMessages, replyAt, replyText, stageOf }
 import { labRows, LABS } from './labs';
 import { median, reactionAdvice, scoreReaction } from './reaction';
 import { isNetworkError, syncErrorMessage, withRetry } from '../lib/retry';
+import { canPull, PULL_MS, pullOf } from './tether';
+import { locationOf } from './locations';
 
 describe('levelFor', () => {
   it('maps values to nested threshold bands', () => {
@@ -502,5 +504,72 @@ describe('alertness check (reaction test)', () => {
     await store.submitReaction('02', [300, 290, 310, 305, 295, 280], 0);
     expect(store.getSnapshot().error).toBeUndefined();
     expect(store.current?.reactions?.['02']?.medianMs).toBe(298);
+  });
+});
+
+describe('tether pull', () => {
+  it('only the commander or the medical officer, only in a spacewalk emergency, never yourself', async () => {
+    let now = 50_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => now));
+    // Okafor (02) starts outside on a spacewalk. No alert: no pull.
+    expect(canPull(store.current, '02', '01', now)).toBe(false);
+    await store.runScenario('02', 'warning');
+    now += 10_000;
+    await store.pullIn('02', '01');
+    expect(store.current!.pulls).toBeUndefined();
+
+    await store.runScenario('02', 'critical');
+    now += 10_000;
+    await store.pullIn('02', '04');
+    await store.pullIn('02', '02');
+    expect(store.current!.pulls).toBeUndefined();
+    expect(canPull(store.current, '02', '01', now)).toBe(true);
+
+    // Lindqvist (03, medical officer) pulls Okafor in.
+    await store.pullIn('02', '03');
+    const state = store.current!;
+    expect(state.pulls?.['02']).toEqual({ by: '03', at: now });
+    expect(locationOf(state, '02')).toBe('airlock');
+    expect(state.claims?.['02']?.by).toBe('03');
+    expect(state.checklists?.['02']?.airlock?.by).toBe('03');
+    const alert = crewSummary(state, now).alerts[0];
+    const steps = responseChecklist(alert, state);
+    expect(steps.find((x) => x.id === 'airlock')?.text).toContain('tether');
+    expect(steps[0].text).toContain('suit radio');
+    expect(pullOf(state, '02', now + 1000)?.active).toBe(true);
+    expect(pullOf(state, '02', now + PULL_MS)?.active).toBe(false);
+    // Now inside the airlock: no second pull.
+    expect(canPull(state, '02', '01', now)).toBe(false);
+
+    await store.resolve('02', '03');
+    expect(store.current!.pulls).toBeUndefined();
+  });
+
+  it('works for a help call outside but not for crew inside the vehicle', async () => {
+    const now = 20_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => now));
+    await store.requestHelp('02');
+    expect(canPull(store.current, '02', '01', now)).toBe(true);
+    await store.requestHelp('04');
+    // Arai (04) is in the airlock, Kaya (01) in the habitat: already inside.
+    expect(canPull(store.current, '04', '01', now)).toBe(false);
+    await store.runScenario('01', 'critical');
+    expect(canPull(store.current, '01', '03', now + 10_000)).toBe(false);
+  });
+
+  it('the narrator says who pulled whom', async () => {
+    let now = 30_000;
+    const store = new RoomStore(new MemoryBackend(newRoomState(0), () => now));
+    await store.runScenario('02', 'critical');
+    now += 10_000;
+    const before = store.current!;
+    const prev = personView(before, '02', snapshot(before, '02', now), now, crewSummary(before, now).alerts[0]);
+    await store.pullIn('02', '01');
+    const after = store.current!;
+    const s = snapshot(after, '02', now);
+    const next = personView(after, '02', s, now, crewSummary(after, now).alerts[0]);
+    const beats = personBeats(prev, next, '02', s, after);
+    expect(beats[0].title).toBe('Mara Kaya is pulling Daniel Okafor in by the tether');
+    expect(beats.some((b) => b.title.includes('moved to'))).toBe(false);
   });
 });

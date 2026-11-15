@@ -7,6 +7,7 @@ import { ackKey, applyPatch, findUndefined, newRoomState, type Patch, type RoomS
 import { composeMessage, type MessageKind } from '../domain/earth';
 import { scoreReaction } from '../domain/reaction';
 import { scenarioPatch, type ScenarioId } from '../domain/scenarios';
+import { canPull } from '../domain/tether';
 import type { Level, VitalId } from '../domain/vitals';
 
 export type RoomStatus = 'connecting' | 'ready' | 'missing' | 'error';
@@ -123,11 +124,27 @@ export class RoomStore {
   }
 
   requestHelp(id: AstronautId) {
-    return this.update({ [`help/${id}`]: { at: this.now() }, [`claims/${id}`]: null, [`checklists/${id}`]: null });
+    return this.update({ [`help/${id}`]: { at: this.now() }, [`claims/${id}`]: null, [`checklists/${id}`]: null, [`pulls/${id}`]: null });
   }
 
   cancelHelp(id: AstronautId) {
-    return this.update({ [`help/${id}`]: null, [`claims/${id}`]: null, [`checklists/${id}`]: null });
+    return this.update({ [`help/${id}`]: null, [`claims/${id}`]: null, [`checklists/${id}`]: null, [`pulls/${id}`]: null });
+  }
+
+  /**
+   * The commander or the medical officer pulls a spacewalker in by the tether during a crew emergency. The crew member
+   * heads for the airlock, the response checklist records the pull and `by` becomes the responder if nobody was.
+   */
+  pullIn(id: AstronautId, by: AstronautId) {
+    const now = this.now();
+    if (!canPull(this.state, id, by, now)) return Promise.resolve();
+    const patch: Patch = {
+      [`pulls/${id}`]: { by, at: now },
+      [`locations/${id}`]: 'airlock',
+      [`checklists/${id}/airlock`]: { by, at: now },
+    };
+    if (!this.state?.claims?.[id]) patch[`claims/${id}`] = { by, at: now };
+    return this.update(patch);
   }
 
   /** Someone answers a crew alert. Nobody answers their own: the person in trouble cannot be the responder. */
@@ -206,7 +223,7 @@ export class RoomStore {
   }
 
   setLocation(id: AstronautId, location: LocationId) {
-    return this.update({ [`locations/${id}`]: location });
+    return this.update({ [`locations/${id}`]: location, [`pulls/${id}`]: null });
   }
 
   /** Answer to a sensor's symptom question on the watch, such as "Do your fingers feel numb?". */

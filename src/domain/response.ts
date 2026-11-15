@@ -68,16 +68,19 @@ export function responseChecklist(alert: CrewAlert, state: RoomState | null | un
   const who = surname(id);
   const key = keyOf(alert);
   const eva = isEva(state, id);
+  const pulled = !!state?.pulls?.[id];
   const kit = RESPONSE_STEP[key];
   const steps: ResponseStep[] = [
     {
       id: 'reach',
-      text: eva ? `Talk to ${who} on the suit radio` : `Go to ${who} in the ${locationLabel(state, id).toLowerCase()}`,
+      // Still suited after a tether pull, so the suit radio stays the first contact.
+      text: eva || pulled ? `Talk to ${who} on the suit radio` : `Go to ${who} in the ${locationLabel(state, id).toLowerCase()}`,
     },
   ];
   if (key !== 'help') steps.push({ id: 'kit', text: kit });
   steps.push({ id: 'act', text: FIRST_ACTION[key] });
-  if (eva && !kit.includes('airlock')) steps.push({ id: 'airlock', text: 'Prepare the airlock for early return' });
+  if (pulled) steps.push({ id: 'airlock', text: 'Pull them in by the tether to the airlock' });
+  else if (eva && !kit.includes('airlock')) steps.push({ id: 'airlock', text: 'Prepare the airlock for early return' });
   steps.push({ id: 'care', text: CREW_BY_ID[id].cmo ? 'Commander coordinates care' : 'Medical officer takes over care' });
   const delayMs = PROFILES[state?.profile ?? 'lunar'].earthDelayMs;
   const delay = delayMs < 60_000 ? `${(delayMs / 1000).toFixed(1)} s` : `${Math.round(delayMs / 60_000)} min`;
