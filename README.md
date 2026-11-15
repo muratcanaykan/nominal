@@ -281,6 +281,6 @@ npm run dev
 - Muratcan Aykan
 - Ece İrem Şaş
 - Rümeyda Sürmeli
-- Rümeyse Esilay Sarı
+- Rümeysa Esilay Sarı
 - Zehra Yalçınkaya
 - Ramazan Giyici
